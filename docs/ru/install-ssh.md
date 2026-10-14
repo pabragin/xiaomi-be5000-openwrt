@@ -125,19 +125,29 @@ sh scripts/pc/be5000-backup.sh $R
 
 ## Шаг 3. Калибровка Wi-Fi
 
-Нужен, если `check` не написал `already contains MT7992 calibration`.
+```sh
+ssh $R sh /tmp/be5000-install.sh calibration
+```
 
-1. Соберите блок 128 КБ из **своего** раздела Factory:
-   ```sh
-   python3 scripts/pc/be5000-calibration.py be5000-backup-*/mtd*-Factory.bin calibration.bin
-   ```
-   Скрипт проверит подпись `92 79` (MT7992) и MAC и откажется работать, если после EEPROM есть данные. Если раздел на стоке называется иначе, возьмите файл раздела размером 4 МБ, который начинается со смещения `0x180000` (см. `proc_mtd.txt`).
-2. Запишите его в `0xA0000`:
-   ```sh
-   scp -O calibration.bin $R:/tmp/
-   ssh $R sh /tmp/be5000-install.sh calibration /tmp/calibration.bin
-   ```
-   Скрипт найдёт раздел, в который попадает `0xA0000` (на стоке это `u-boot-env`, на новой разметке `art`), убедится, что блок пустой, перепишет раздел целиком с изменённым вторым блоком и проверит результат чтением.
+```
+>>> calibration built from Factory: Wi-Fi base MAC 50:4f:3b:7a:30:76, md5 …
+>>> writing calibration into mtd1 'u-boot-env' at +0x20000 (whole partition rewritten, other blocks unchanged)
+>>> mtd1 written and verified (…)
+```
+
+Что делает команда:
+1. Находит заводской раздел Factory (`0x180000`) и читает его в `/tmp/be5000-Factory.bin`.
+2. Проверяет подпись `92 79` (MT7992) и базовый MAC. Если после первых 7680 байт EEPROM в разделе есть данные, останавливается.
+3. Собирает блок 128 КБ: EEPROM + `FF`.
+4. Находит раздел, в который попадает `0xA0000` (на стоке `u-boot-env`, на новой разметке `art`), убеждается, что блок пустой, переписывает раздел с изменённым вторым блоком и проверяет результат чтением.
+
+| Случай | Команда |
+|---|---|
+| Сток Xiaomi, Factory на месте | `be5000-install.sh calibration` |
+| Калибровка уже в `0xA0000` (OpenWrt xinyooo/iscle) | та же команда ответит `calibration already in place` |
+| Factory уже затёрт, есть бэкап | `scp -O Factory.bin $R:/tmp/` и `be5000-install.sh calibration /tmp/Factory.bin` (4 МБ дамп или готовый блок 128 КБ) |
+
+На ПК то же самое делает `python3 scripts/pc/be5000-calibration.py Factory.bin calibration.bin`.
 
 ## Шаг 4. Загрузчик
 

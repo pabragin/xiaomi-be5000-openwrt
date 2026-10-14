@@ -125,19 +125,29 @@ The script downloads each `/dev/mtdN` to the PC and checks SHA-256 against the r
 
 ## Step 3. Wi-Fi calibration
 
-Needed if `check` did not print `already contains MT7992 calibration`.
+```sh
+ssh $R sh /tmp/be5000-install.sh calibration
+```
 
-1. Build a 128 KB block from **your own** Factory partition:
-   ```sh
-   python3 scripts/pc/be5000-calibration.py be5000-backup-*/mtd*-Factory.bin calibration.bin
-   ```
-   The script checks the `92 79` signature (MT7992) and the MAC, and refuses to run if there is data after the EEPROM. If the partition has a different name on stock, take the 4 MB partition file that starts at offset `0x180000` (see `proc_mtd.txt`).
-2. Write it to `0xA0000`:
-   ```sh
-   scp -O calibration.bin $R:/tmp/
-   ssh $R sh /tmp/be5000-install.sh calibration /tmp/calibration.bin
-   ```
-   The script finds the partition that contains `0xA0000` (on stock it is `u-boot-env`, on the new flash layout `art`), makes sure the block is empty, rewrites the whole partition with the changed second block and verifies the result by reading it back.
+```
+>>> calibration built from Factory: Wi-Fi base MAC 50:4f:3b:7a:30:76, md5 …
+>>> writing calibration into mtd1 'u-boot-env' at +0x20000 (whole partition rewritten, other blocks unchanged)
+>>> mtd1 written and verified (…)
+```
+
+What the command does:
+1. Finds the stock Factory partition (`0x180000`) and reads it into `/tmp/be5000-Factory.bin`.
+2. Checks the `92 79` signature (MT7992) and the base MAC. Stops if the partition has data after the first 7680 EEPROM bytes.
+3. Builds a 128 KB block: EEPROM + `FF`.
+4. Finds the partition that contains `0xA0000` (`u-boot-env` on stock, `art` on the new flash layout), makes sure the block is empty, rewrites the partition with the changed second block and verifies it by reading it back.
+
+| Case | Command |
+|---|---|
+| Xiaomi stock firmware, Factory present | `be5000-install.sh calibration` |
+| Calibration already at `0xA0000` (OpenWrt xinyooo/iscle) | the same command answers `calibration already in place` |
+| Factory already overwritten, you have a backup | `scp -O Factory.bin $R:/tmp/` and `be5000-install.sh calibration /tmp/Factory.bin` (4 MB dump or a ready 128 KB block) |
+
+On a PC the same is done by `python3 scripts/pc/be5000-calibration.py Factory.bin calibration.bin`.
 
 ## Step 4. Bootloader
 

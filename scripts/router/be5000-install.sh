@@ -5,7 +5,8 @@
 #
 #   sh be5000-install.sh check
 #   sh be5000-install.sh nand
-#   sh be5000-install.sh calibration /tmp/calibration.bin
+#   sh be5000-install.sh calibration            (built from the stock Factory partition)
+#   sh be5000-install.sh calibration FILE       (Factory dump 4 MiB or calibration block 128 KiB)
 #   sh be5000-install.sh bootloader  /tmp/be5000-bootloader-w25n01kv.bin
 #
 # Nothing is written by "check". Every write is verified by reading it back.
@@ -166,17 +167,52 @@ write_verify() { # mtd_index image_file
 	info "mtd$1 written and verified ($(hash_of "$2"))"
 }
 
+EEPROM_SIZE=$((0x1E00))     # MT7992 EEPROM at the start of the stock Factory partition
+FACTORY_OFF=$((0x180000)); FACTORY_SIZE=$((0x400000))
+
+# Turn a Factory dump (4 MiB) into the 128 KiB calibration block: the first
+# 7680 bytes (MT7992 EEPROM) followed by 0xFF. Refuses unknown data after them.
+make_calibration() { # factory_file output_file
+	[ "$(hex2 "$1" 2)" = "9279" ] || die "no MT7992 EEPROM signature (92 79) in $1"
+	mac=$(hex2 "$1" 6 4)
+	case "$mac" in 000000000000|ffffffffffff) die "invalid base MAC in EEPROM";; esac
+	tail_md5=$(dd if="$1" bs=512 skip=$((EEPROM_SIZE / 512)) 2>/dev/null | md5sum | cut -d' ' -f1)
+	ff_md5=$(dd if=/dev/zero bs=512 count=$(((FACTORY_SIZE - EEPROM_SIZE) / 512)) 2>/dev/null | tr '\000' '\377' | md5sum | cut -d' ' -f1)
+	[ "$tail_md5" = "$ff_md5" ] || die "unexpected data after the EEPROM in Factory - refusing to drop it"
+	{
+		dd if="$1" bs=512 count=$((EEPROM_SIZE / 512)) 2>/dev/null
+		dd if=/dev/zero bs=512 count=$(((CAL_SIZE - EEPROM_SIZE) / 512)) 2>/dev/null | tr '\000' '\377'
+	} > "$2"
+	info "calibration built from Factory: Wi-Fi base MAC $(echo "$mac" | sed 's/../&:/g; s/:$//'), md5 $(hash_of "$2")"
+}
+
 cmd_calibration() {
-	f=${1:-}; [ -f "$f" ] || die "usage: $0 calibration /tmp/calibration.bin"
-	[ "$(wc -c < "$f")" -eq $CAL_SIZE ] || die "calibration file must be exactly 131072 bytes"
+	f=${1:-}
+	if [ -z "$f" ]; then
+		set -- $(mtd_covering $FACTORY_OFF $FACTORY_SIZE)
+		[ $# -eq 5 ] && [ "$3" -eq $FACTORY_OFF ] || {
+			info "no stock Factory partition at 0x180000"
+			set -- $(mtd_covering $CAL_OFF $CAL_SIZE)
+			[ $# -eq 5 ] && [ "$(hex2 /dev/mtd$1 2 $((CAL_OFF - $3)))" = "9279" ] && { info "calibration already in place at 0xA0000"; return 0; }
+			die "pass your Factory backup: $0 calibration /tmp/Factory.bin"
+		}
+		dd if=/dev/mtd$1 of=/tmp/be5000-Factory.bin bs=4096 2>/dev/null
+		f=/tmp/be5000-Factory.bin
+	fi
+	[ -f "$f" ] || die "file not found: $f"
+	case "$(wc -c < "$f")" in
+		$FACTORY_SIZE) make_calibration "$f" /tmp/be5000-calibration.bin; f=/tmp/be5000-calibration.bin ;;
+		$CAL_SIZE) ;;
+		*) die "expected a 4 MiB Factory dump or a 128 KiB calibration block" ;;
+	esac
 	[ "$(hex2 "$f" 2)" = "9279" ] || die "file is not an MT7992 EEPROM block"
 	set -- $(mtd_covering $CAL_OFF $CAL_SIZE)
 	[ $# -eq 5 ] || die "no MTD partition covers 0xA0000"
 	idx=$1; off=$3; size=$4; flags=$5; rel=$((CAL_OFF - off))
-	writable "$flags" || die "mtd$idx '$2' is read-only in this kernel; use the U-Boot method (docs)"
 	part=/tmp/.be5000_part
 	dd if=/dev/mtd$idx of=$part bs=4096 2>/dev/null
 	if [ "$(hash_of $part $rel $CAL_SIZE)" = "$(hash_of "$f")" ]; then info "calibration already in place"; rm -f $part; return 0; fi
+	writable "$flags" || { rm -f $part; die "mtd$idx '$2' is read-only in this kernel; see docs (READ-ONLY)"; }
 	is_erased $part $rel $CAL_SIZE || { rm -f $part; die "block 0xA0000 is not empty - stop and inspect it, never erase unknown data"; }
 	cp $part /tmp/be5000-mtd$idx-before-calibration.bin
 	{

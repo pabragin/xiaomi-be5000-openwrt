@@ -59,10 +59,9 @@ R=root@192.168.31.1          # адрес роутера сейчас (у сто
    ```sh
    sh scripts/pc/be5000-backup.sh $R
    ```
-3. **Калибровка Wi-Fi** из своего бэкапа. Шаг нужен, только если `check` не написал `already contains MT7992 calibration`.
+3. **Калибровка Wi-Fi.** Роутер сам возьмёт EEPROM из заводского раздела Factory и запишет его в `0xA0000`. Если калибровка уже на месте, команда просто это сообщит.
    ```sh
-   python3 scripts/pc/be5000-calibration.py be5000-backup-*/mtd*-Factory.bin calibration.bin
-   scp -O calibration.bin $R:/tmp/ && ssh $R sh /tmp/be5000-install.sh calibration /tmp/calibration.bin
+   ssh $R sh /tmp/be5000-install.sh calibration
    ```
 4. **Загрузчик.**
    ```sh

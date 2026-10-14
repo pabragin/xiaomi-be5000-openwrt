@@ -59,10 +59,9 @@ R=root@192.168.31.1          # current router address (Xiaomi stock is usually 1
    ```sh
    sh scripts/pc/be5000-backup.sh $R
    ```
-3. **Wi-Fi calibration** from your own backup. Needed only if `check` did not print `already contains MT7992 calibration`.
+3. **Wi-Fi calibration.** The router takes the EEPROM from its stock Factory partition and writes it to `0xA0000`. If the calibration is already in place, the command just says so.
    ```sh
-   python3 scripts/pc/be5000-calibration.py be5000-backup-*/mtd*-Factory.bin calibration.bin
-   scp -O calibration.bin $R:/tmp/ && ssh $R sh /tmp/be5000-install.sh calibration /tmp/calibration.bin
+   ssh $R sh /tmp/be5000-install.sh calibration
    ```
 4. **Bootloader.**
    ```sh
