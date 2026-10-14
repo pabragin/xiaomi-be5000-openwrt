@@ -181,7 +181,7 @@ Further updates are installed with the regular OpenWrt `sysupgrade`.
 | Where | What to do |
 |---|---|
 | OpenWrt xinyooo/iscle (`replacement`) | `u-boot` and `art` are always read-only there. Option without opening the case: `kmod-mtd-rw` and `insmod mtd-rw i_want_a_brick=1` (not tested on this build). Reliable option: [UART](recovery-uart.md) |
-| Xiaomi stock firmware | partitions locked by the Xiaomi kernel cannot be unlocked from it. Use [UART](recovery-uart.md): after writing the bootloader over UART, continue from step 5 of this guide |
+| Xiaomi stock firmware | the bootloader and calibration partitions are writable on stock (tested), so this case does not occur. If they still show `READ-ONLY`, use [UART](recovery-uart.md), then step 5 of this guide |
 
 ## If something goes wrong
 

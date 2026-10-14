@@ -6,7 +6,7 @@
 > **TL;DR.** This repository shows how to install OpenWrt on the Xiaomi BE5000 with only root SSH access, and how to recover the router over UART if the bootloader is broken.
 > - **Main trap:** the bootloader from the xinyooo releases and the X-WRT preloader do not know the **Winbond W25N01KV** flash chip. With this chip the router crashes on every cold boot with `PANIC at PC : 0x810017a9`.
 > - **This repository has a bootloader that knows it:** [`be5000-bootloader-w25n01kv.bin`](firmware/bootloader/), 57 NAND chips, U-Boot with autoboot and web recovery.
-> - **Tested on hardware:** one BE5000 (AN7563PT, W25N01KV, 512 MB DDR3), cold boot, OpenWrt `be5000-upstream-ppe-20260925`, its own Wi-Fi calibration.
+> - **Tested on hardware:** BE5000 (AN7563PT, W25N01KV, 512 MB DDR3): SSH install from Xiaomi stock firmware, UART recovery, web failsafe install, cold boot, OpenWrt `be5000-upstream-ppe-20260925`, its own Wi-Fi calibration.
 
 ## Contents
 
@@ -17,7 +17,7 @@
 5. [Files](#5-files)
 6. [How it works](#6-how-it-works) → details: [docs/en/technical.md](docs/en/technical.md)
 7. [Sources and credits](#7-sources-and-credits)
-8. [Open questions](#8-open-questions)
+8. [Feedback](#8-feedback)
 
 ## 1. What you get
 
@@ -119,10 +119,6 @@ Details, with logs and addresses: [docs/en/technical.md](docs/en/technical.md).
 - [Ansuel/atf-airoha](https://github.com/Ansuel/atf-airoha): BL2 sources used to work out the XMODEM recovery format.
 - [Medvedolog, issue #17](https://github.com/Medvedolog/airoha-router-ursusflasher/issues/17): AN7552 BootROM observations.
 
-## 8. Open questions
-
-- [ ] Writing the bootloader from Xiaomi stock firmware is not tested on hardware: it is unknown whether the partition is writable there. The script checks this before writing.
-- [ ] BL2 and BL31 are Airoha binaries without an open license; [publication request](https://github.com/openwrt/openwrt/pull/24257#issuecomment-5040866776).
-- [ ] OpenWrt has no official BE5000 support yet: [PR #23960](https://github.com/openwrt/openwrt/pull/23960) is open.
+## 8. Feedback
 
 Report successes and problems in [Issues](../../issues). Include the NAND chip and the output of `be5000-install.sh check`.
