@@ -21,7 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 This licence covers the scripts and documentation in this repository.
-Files in firmware/ are third-party binaries (Airoha BL2/BL31, GPL-2.0 U-Boot);
-see firmware/bootloader/README.md. Photos: GPIO0 by 100PoR-new
+Files in firmware/ are third-party binaries (Airoha BL2/BL31, GPL-2.0 U-Boot,
+GPL-2.0 OpenWrt images by iscle); see firmware/*/README.md. Photos: GPIO0 by 100PoR-new
 (https://github.com/openwrt/openwrt/pull/23960#issuecomment-6173662443),
 UART pins from right.com.cn.

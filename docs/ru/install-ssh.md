@@ -34,7 +34,7 @@
 | `ssh`, `scp`, `python3` на ПК | скрипты в `scripts/pc/` |
 | кабель ПК ↔ LAN-порт | веб-failsafe работает только по проводу |
 | USB-UART 3.3 В | страховка: если запись загрузчика оборвётся, роутер поднимается только по UART |
-| [OpenWrt для BE5000](https://github.com/iscle/openwrt/releases/tag/be5000-upstream-ppe-20260925) | `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`, SHA-256 `4c2cdc40…` |
+| [OpenWrt для BE5000](../../firmware/openwrt/) | `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` в этом репозитории (релиз [iscle](https://github.com/iscle/openwrt/releases/tag/be5000-upstream-ppe-20260925)), SHA-256 `4c2cdc40…` |
 
 ```sh
 git clone https://github.com/pabragin/xiaomi-be5000-openwrt && cd xiaomi-be5000-openwrt
@@ -157,7 +157,7 @@ scp -O $R:/tmp/be5000-mtd0-old-bootloader.bin be5000-backup-*/   # старый 
 1. Перезагрузите роутер (`ssh $R reboot` или выключить и включить).
 2. U-Boot попробует загрузить OpenWrt из раздела `firmware`. Там пока данные стока, поэтому загрузка не пройдёт, и через пару секунд поднимется страница восстановления.
 3. Подключите ПК кабелем к LAN-порту и задайте ему адрес вручную: `192.168.1.10`, маска `255.255.255.0`.
-4. Откройте `http://192.168.1.1`, выберите `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`, нажмите **Upload**.
+4. Откройте `http://192.168.1.1`, выберите [`firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`](../../firmware/openwrt/), нажмите **Upload**.
 5. На странице подтверждения сверьте MD5 и размер (`11272463` байт) и нажмите **Proceed**. U-Boot стирает весь раздел `firmware` (64 МБ) и записывает образ. Это занимает **3–5 минут**: страница может перестать отвечать, питание не выключайте. Потом роутер сам перезагрузится в OpenWrt.
 6. Первая загрузка дольше обычной: OpenWrt форматирует `rootfs_data`. Сообщение `mount_root: failed to sync jffs2 overlay` в логе на первой загрузке безвредно, со следующей загрузки будет `switching to jffs2 overlay`.
 

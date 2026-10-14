@@ -91,6 +91,8 @@ U-Boot> tftpboot 0x84000000 openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel
 U-Boot> bootm 0x84000000
 ```
 
+Файл initramfs лежит в [`firmware/openwrt/`](../../firmware/openwrt/); положите его в корень TFTP-сервера на ПК (`192.168.1.10`).
+
 Чтобы попасть в консоль U-Boot, запустите скрипт с `--stop-autoboot`.
 
 ## Что видно в логе

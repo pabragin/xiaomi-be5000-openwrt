@@ -69,7 +69,7 @@ R=root@192.168.31.1          # адрес роутера сейчас (у сто
    scp -O firmware/bootloader/be5000-bootloader-w25n01kv.bin $R:/tmp/
    ssh $R sh /tmp/be5000-install.sh bootloader /tmp/be5000-bootloader-w25n01kv.bin
    ```
-5. **Прошивка через веб-failsafe.** Перезагрузите роутер. U-Boot не найдёт OpenWrt и откроет страницу восстановления. Задайте ПК адрес `192.168.1.10/24`, откройте `http://192.168.1.1`, загрузите [`openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`](https://github.com/iscle/openwrt/releases/tag/be5000-upstream-ppe-20260925) и нажмите **Proceed**.
+5. **Прошивка через веб-failsafe.** Перезагрузите роутер. U-Boot не найдёт OpenWrt и откроет страницу восстановления. Задайте ПК адрес `192.168.1.10/24`, откройте `http://192.168.1.1`, загрузите [`openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`](firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin) и нажмите **Proceed**.
 6. **Первый вход:** `ssh root@192.168.1.1`, затем `passwd`, после этого настройте Wi-Fi (страна, сеть, пароль).
 
 > [!CAUTION]
@@ -96,12 +96,12 @@ R=root@192.168.31.1          # адрес роутера сейчас (у сто
 | [`firmware/bootloader/be5000-bootloader-w25n01kv.bin`](firmware/bootloader/) | загрузчик 512 КБ: BL2 (57 чипов NAND) + BL31 + U-Boot | флеш `0x0` (SSH: `be5000-install.sh bootloader`; UART: XMODEM №2) |
 | [`firmware/bootloader/be5000-uart-bl2-stage1.bin`](firmware/bootloader/) | тот же BL2 в мини-FIP | только UART, XMODEM №1 в BootROM |
 | `calibration.bin` (делаете сами) | EEPROM MT7992 вашего роутера, 128 КБ | флеш `0xA0000` |
-| OpenWrt `squashfs-sysupgrade.bin` ([iscle](https://github.com/iscle/openwrt/releases/tag/be5000-upstream-ppe-20260925)) | ядро FIT + squashfs | раздел `firmware` `0xC0000` (веб-failsafe или `sysupgrade`) |
-| OpenWrt `initramfs-kernel.bin` (iscle) | система в RAM для проверки | TFTP → `bootm`, флеш не трогает |
+| [`firmware/openwrt/…-squashfs-sysupgrade.bin`](firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin) | OpenWrt ([iscle](https://github.com/iscle/openwrt/releases/tag/be5000-upstream-ppe-20260925)): ядро FIT + squashfs | раздел `firmware` `0xC0000` (веб-failsafe или `sysupgrade`) |
+| [`firmware/openwrt/…-initramfs-kernel.bin`](firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin) | OpenWrt в RAM для проверки и восстановления | TFTP → `bootm`, флеш не трогает |
 | [`scripts/router/be5000-install.sh`](scripts/router/be5000-install.sh) | проверка, запись калибровки и загрузчика с проверкой чтением | запускается на роутере |
 | [`scripts/pc/`](scripts/pc/) | бэкап, калибровка, UART-восстановление, проверка загрузчика | запускается на ПК |
 
-Контрольные суммы и происхождение бинарников: [firmware/bootloader/README.md](firmware/bootloader/README.md).
+Контрольные суммы и происхождение бинарников: [firmware/bootloader/README.md](firmware/bootloader/README.md), [firmware/openwrt/README.md](firmware/openwrt/README.md).
 
 ## 6. Как это устроено
 
