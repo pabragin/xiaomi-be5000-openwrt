@@ -1,0 +1,6 @@
+# Personal device data must never be committed
+be5000-backup-*/
+calibration.bin
+*.log
+__pycache__/
+.DS_Store
