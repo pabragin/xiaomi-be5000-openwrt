@@ -87,7 +87,7 @@ ssh $R sh /tmp/be5000-install.sh nand
 >>> Kernel log:
   spi-nand spi0.0: Winbond SPI NAND was found.
   spi-nand spi0.0: 128 MiB, block size: 128 KiB, page size: 2048, OOB size: 96
->>> MTD geometry: page=2048 oob=96 erase=131072
+>>> MTD geometry: page=2048 oob=96 (sysfs) oob=96 (kernel log) erase=131072
 >>> Result: vendor=Winbond chip=W25N01KV
   SUPPORTED: the BL2 of be5000-bootloader-w25n01kv.bin knows W25N01KV
 ```
@@ -97,9 +97,9 @@ ssh $R sh /tmp/be5000-install.sh nand
 То же вручную, встроенными средствами:
 
 ```sh
-dmesg | grep -iE 'nand|W25N|GD5F|F50L|EM73'   # производитель, иногда модель или JEDEC ID
-cat /sys/class/mtd/mtd0/oobsize                # размер OOB
-cat /sys/class/mtd/mtd0/writesize              # размер страницы
+dmesg | grep -iE 'nand|oob|W25N|GD5F|F50L|EM73'   # производитель, размер OOB, иногда модель или JEDEC ID
+cat /sys/class/mtd/mtd0/oobsize                    # размер OOB (на стоке Xiaomi бывает неверным)
+cat /sys/class/mtd/mtd0/writesize                  # размер страницы
 ```
 
 | Признак | Чип | Наш загрузчик | Загрузчики xinyooo v2026.05–06, preloader X-WRT |
@@ -111,6 +111,9 @@ cat /sys/class/mtd/mtd0/writesize              # размер страницы
 
 > [!NOTE]
 > W25N01KV и W25N01GV ядро называет одинаково: «Winbond SPI NAND, 128 MiB». Различить их можно только по OOB (96 и 64 байта) или по JEDEC ID.
+
+> [!WARNING]
+> Стоковое ядро Xiaomi показывает в `/sys/class/mtd/mtd0/oobsize` значение 64 даже для W25N01KV. Верный размер OOB есть в логе ядра. Скрипт берёт его оттуда, а 64 из одного только sysfs не считает доказательством: чип останется неопределённым, и для записи загрузчика понадобится сверить маркировку и задать `BE5000_NAND_OK=1`.
 
 ## Шаг 2. Бэкап
 

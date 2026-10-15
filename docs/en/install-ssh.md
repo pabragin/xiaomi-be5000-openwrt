@@ -87,7 +87,7 @@ ssh $R sh /tmp/be5000-install.sh nand
 >>> Kernel log:
   spi-nand spi0.0: Winbond SPI NAND was found.
   spi-nand spi0.0: 128 MiB, block size: 128 KiB, page size: 2048, OOB size: 96
->>> MTD geometry: page=2048 oob=96 erase=131072
+>>> MTD geometry: page=2048 oob=96 (sysfs) oob=96 (kernel log) erase=131072
 >>> Result: vendor=Winbond chip=W25N01KV
   SUPPORTED: the BL2 of be5000-bootloader-w25n01kv.bin knows W25N01KV
 ```
@@ -97,9 +97,9 @@ The `bootloader` command runs the same check itself and **does not write** if th
 The same by hand, with built-in tools:
 
 ```sh
-dmesg | grep -iE 'nand|W25N|GD5F|F50L|EM73'   # vendor, sometimes model or JEDEC ID
-cat /sys/class/mtd/mtd0/oobsize                # OOB size
-cat /sys/class/mtd/mtd0/writesize              # page size
+dmesg | grep -iE 'nand|oob|W25N|GD5F|F50L|EM73'   # vendor, OOB size, sometimes model or JEDEC ID
+cat /sys/class/mtd/mtd0/oobsize                    # OOB size (can be wrong on stock Xiaomi)
+cat /sys/class/mtd/mtd0/writesize                  # page size
 ```
 
 | Sign | Chip | Our bootloader | xinyooo v2026.05–06 bootloaders, X-WRT preloader |
@@ -111,6 +111,9 @@ cat /sys/class/mtd/mtd0/writesize              # page size
 
 > [!NOTE]
 > The kernel names W25N01KV and W25N01GV the same way: "Winbond SPI NAND, 128 MiB". You can tell them apart only by OOB (96 vs 64 bytes) or by JEDEC ID.
+
+> [!WARNING]
+> The stock Xiaomi kernel reports 64 in `/sys/class/mtd/mtd0/oobsize` even for W25N01KV. The kernel log has the right OOB size. The script takes it from there and does not treat 64 from sysfs alone as proof: the chip stays unidentified, and writing the bootloader then needs a marking check and `BE5000_NAND_OK=1`.
 
 ## Step 2. Backup
 

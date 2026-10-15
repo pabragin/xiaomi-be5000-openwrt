@@ -80,19 +80,37 @@ is_erased() { # file offset len -> true if all 0xFF
 }
 
 nand_chip() {
-	dmesg 2>/dev/null | grep -iE 'spi.?nand|SPI NAND|nand.*(id|found)|W25N|GD5F|F35SQA|F50L|EM73|MX35|XT26' | head -n 8
+	dmesg 2>/dev/null | grep -iE 'spi.?nand|SPI NAND|nand.*(id|found)|oob|W25N|GD5F|F35SQA|F50L|EM73|MX35|XT26' | head -n 8
+}
+
+# OOB size the NAND driver printed at boot ("OOB size: 96", "oobsize=0x60", ...)
+nand_log_oob() {
+	for v in $(dmesg 2>/dev/null | grep -ioE 'oob[ _-]*(size)?[ :=]+(0x[0-9a-f]+|[0-9]+)' | grep -oiE '(0x[0-9a-f]+|[0-9]+)$'); do
+		v=$(($v))
+		case "$v" in 64|96|128) echo "$v"; return ;; esac
+	done
 }
 
 # Identify the SPI-NAND chip with tools every firmware has: the kernel log
 # (manufacturer, sometimes the JEDEC ID) and the MTD geometry in sysfs.
 # W25N01KV and W25N01GV are both "Winbond, 128 MiB, 2 KiB pages"; only the
 # OOB size (96 vs 64 bytes) or the device ID (AE21 vs AA21) tells them apart.
+# The stock Xiaomi kernel reports oobsize=64 in sysfs even for W25N01KV, so
+# the OOB size from the kernel log wins, and 64 from sysfs alone proves nothing.
 cmd_nand() {
 	log=$(nand_chip)
 	m=/sys/class/mtd/mtd0
-	oob=$(cat $m/oobsize 2>/dev/null); page=$(cat $m/writesize 2>/dev/null); blk=$(cat $m/erasesize 2>/dev/null)
+	sys_oob=$(cat $m/oobsize 2>/dev/null); page=$(cat $m/writesize 2>/dev/null); blk=$(cat $m/erasesize 2>/dev/null)
+	log_oob=$(nand_log_oob)
 	info "Kernel log:"; [ -n "$log" ] && echo "$log" | sed 's/^/  /' || echo "  (nothing about NAND)"
-	info "MTD geometry: page=${page:-?} oob=${oob:-?} erase=${blk:-?}"
+	info "MTD geometry: page=${page:-?} oob=${sys_oob:-?} (sysfs) oob=${log_oob:-?} (kernel log) erase=${blk:-?}"
+	if [ -n "$log_oob" ]; then
+		oob=$log_oob; oob_src=log
+		[ -n "$sys_oob" ] && [ "$sys_oob" != "$log_oob" ] && \
+			echo "  Note: sysfs says oob=$sys_oob, the kernel log says $log_oob; using the kernel log"
+	else
+		oob=$sys_oob; oob_src=sysfs
+	fi
 	vendor=unknown
 	echo "$log" | grep -qi winbond && vendor=Winbond
 	echo "$log" | grep -qiE 'ESMT|Elite' && vendor=ESMT
@@ -103,7 +121,11 @@ cmd_nand() {
 	case "$ids" in *ae*21) chip=W25N01KV ;; *aa*21) chip=W25N01GV ;; esac
 	if [ "$chip" = unknown ] && [ "$vendor" = Winbond ] && [ "$page" = 2048 ]; then
 		[ "$oob" = 96 ] && chip=W25N01KV
-		[ "$oob" = 64 ] && chip=W25N01GV
+		if [ "$oob" = 64 ]; then
+			if [ "$oob_src" = log ]; then chip=W25N01GV
+			else echo "  Note: oob=64 comes only from sysfs, which is wrong on stock firmware for W25N01KV; not guessing"
+			fi
+		fi
 	fi
 	# A model name printed by the kernel wins over the geometry guess
 	named=$(echo "$log" | grep -oE 'W25N0[0-9A-Z]+|W25M0[0-9A-Z]+|GD5F[0-9A-Z]+|EM73[0-9A-Z]+|F50L[0-9A-Z]+|MX35LF[0-9A-Z]+|XT26G[0-9A-Z]+|FM25[0-9A-Z]+|TC58[0-9A-Z]+|MT29F[0-9A-Z]+' | head -n 1)
