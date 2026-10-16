@@ -43,6 +43,7 @@
 | `0x0C0000` | ↑ | firmware: kernel (FIT) | `0x3C0000` |
 | `0x100000` | bdata (`ethaddr=…`) | ↑ | |
 | `0x180000` | **Factory** (EEPROM `92 79` + MAC) | firmware: rootfs | |
+| `0x580000` | crash | ↑ | |
 | `0x600000` | kernel (stock) | ↑ | |
 | `0xC00000` | ubi (stock) | ↑ | |
 | `0x18C0000` | ↑ | ubi: `rootfs_data` (settings) | `0x2800000` |
@@ -125,7 +126,7 @@ Settings are not in `firmware` but in a separate `ubi` partition (`0x18C0000`, 4
 Compared to iscle's builds:
 
 - **Settings in UBI** instead of JFFS2 (see above).
-- **PCIe at 5 GT/s:** the AN7563 root ports train at 2.5 GT/s and stay there; the kernel retrains both links to 5 GT/s, as the Xiaomi stock kernel does (`mt7512_pcie_rc0/rc1_retrain`). At 2.5 GT/s x1 the Wi-Fi TX DMA capped downloads at about 1 Gbit/s; with 5 GT/s a 2x2 160 MHz client downloads ~1.45 Gbit/s.
+- **PCIe at 5 GT/s:** the AN7563 root ports train at 2.5 GT/s and stay there; the kernel retrains both links to 5 GT/s, as the Xiaomi stock kernel does (`mt7512_pcie_rc0/rc1_retrain`). At 2.5 GT/s x1 the Wi-Fi TX DMA capped downloads at about 1 Gbit/s; with 5 GT/s a 2x2 160 MHz client downloads 1.35–1.5 Gbit/s with 8 HTTP streams and 1757 Mbit/s in OpenSpeedTest.
 - **Upload on both NPU cores:** core 1 parsed every received frame (~5400 cycles) and capped Wi-Fi → Ethernet at ~120k frames/s. Core 0 now reads the RX descriptor, checks security and PN and parses the frame, then hands a 32-byte record to core 1 through a queue in shared SRAM; core 1 queues to the PPE or delivers to Linux. Core 1 load under upload drops from 84% to 31%. A boot probe falls back to single-core mode if the cores do not share the queue memory.
 - **Reboot:** the Wi-Fi chip, QDMA and NPU are stopped on shutdown, so a warm reboot does not loop.
 - **Watchdog:** the hardware watchdog works (`airoha,en7523-wdt`).
@@ -144,7 +145,7 @@ The MT7992 radio is attached over two PCIe links: `0000:01:00.0` (main) and `000
 | PCIe | Download (2x2 160 MHz client) |
 |---|---|
 | 2.5 GT/s x1 | ~1.05 Gbit/s |
-| 5 GT/s x1 | ~1.45 Gbit/s (8 HTTP streams), 1757 Mbit/s in OpenSpeedTest |
+| 5 GT/s x1 | 1350–1500 Mbit/s with 8 HTTP streams, 1757 Mbit/s in OpenSpeedTest |
 
 ## Speed
 

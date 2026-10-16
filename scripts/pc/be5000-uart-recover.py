@@ -103,6 +103,23 @@ def xmodem_send(port, path):
             break
 
 
+def terminal(port):
+    """Pass the U-Boot console through: stdin lines go to the router, output to the screen."""
+    say("U-Boot console: type commands here, Ctrl-C to quit")
+    while True:
+        r, _, _ = select.select([port.fd, sys.stdin], [], [], 0.2)
+        if port.fd in r:
+            d = os.read(port.fd, 4096)
+            port.log.write(d)
+            sys.stdout.write(d.decode("latin1"))
+            sys.stdout.flush()
+        if sys.stdin in r:
+            line = sys.stdin.readline()
+            if not line:
+                return
+            port.write(line.rstrip("\n").encode() + b"\r")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("port", help="serial device, e.g. /dev/ttyUSB0 or /dev/cu.usbserial-0001")
@@ -145,7 +162,15 @@ def main():
             break
     print()
     say("Done. Remove the GPIO0 short now, otherwise the next boot enters BootROM recovery again.")
+    if args.stop_autoboot and buf.rstrip().endswith(b"U-Boot>"):
+        terminal(port)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print()
+        say("Stopped")
+    except PermissionError as e:
+        sys.exit(f"{e}: on Linux add your user to the dialout group (log out and in again) or run with sudo")

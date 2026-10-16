@@ -14,8 +14,9 @@
 5. [Восстановление](#восстановление)
 6. [После восстановления](#после-восстановления)
 7. [Калибровка из консоли U-Boot](#калибровка-из-консоли-u-boot)
-8. [Что видно в логе](#что-видно-в-логе)
-9. [Проблемы](#проблемы)
+8. [OpenWrt в RAM](#openwrt-в-ram)
+9. [Что видно в логе](#что-видно-в-логе)
+10. [Проблемы](#проблемы)
 
 ## Готово, когда
 
@@ -28,7 +29,7 @@
 |---|---|
 | USB-UART 3.3 В | CP2102, CH340, FT232. **Не 5 В** |
 | 3–4 провода, пинцет или проводок для GPIO0 | GPIO0 держать замкнутым всё время восстановления |
-| ПК с macOS или Linux, `python3` | на Windows — WSL + `usbipd` или Linux live USB |
+| ПК с macOS или Linux, `python3` | на Windows — WSL + `usbipd` или Linux live USB. На Linux для порта нужна группа `dialout` или `sudo` |
 | Отвёртка | снять нижнюю крышку; полная разборка не нужна |
 
 ## Подключение UART
@@ -84,9 +85,9 @@ U-Boot сразу пробует загрузить OpenWrt из раздела 
 | OpenWrt (iscle/xinyooo) | загрузится как обычно | ничего |
 | пусто или сток Xiaomi | поднимется веб-failsafe `http://192.168.1.1` | [шаг 5 установки](install-ssh.md#шаг-5-прошивка-через-веб-failsafe) |
 
-Если на флеше ещё заводская разметка, перенесите калибровку **до** шага 5: прошивка пишется с `0xC0000` и затирает заводской раздел `Factory`. Проще всего загрузить initramfs OpenWrt из релиза по TFTP (раздел ниже) и выполнить `be5000-install.sh calibration`: команда находит заводские данные `Factory` внутри `firmware` и пишет блок в `art`, который в этой сборке доступен на запись. Без initramfs — из консоли U-Boot (следующий раздел).
+Если на флеше ещё заводская разметка, перенесите калибровку **до** шага 5: прошивка пишется с `0xC0000` и затирает заводской раздел `Factory`. Проще всего загрузить initramfs OpenWrt из релиза по TFTP (раздел ниже), скопировать туда скрипт (`ssh root@192.168.1.1 'cat > /tmp/be5000-install.sh' < scripts/router/be5000-install.sh`) и выполнить `ssh root@192.168.1.1 sh /tmp/be5000-install.sh calibration`: команда находит заводские данные `Factory` внутри `firmware` и пишет блок в `art`, который в этой сборке доступен на запись. Без initramfs — из консоли U-Boot (следующий раздел).
 
-Чтобы попасть в консоль U-Boot, запустите скрипт с `--stop-autoboot`.
+Чтобы попасть в консоль U-Boot, запустите скрипт с `--stop-autoboot`: он прервёт автозагрузку и дальше работает как терминал, команды ниже набирайте прямо в нём; выход по Ctrl-C.
 
 ## Калибровка из консоли U-Boot
 
@@ -108,7 +109,9 @@ U-Boot> mtd dump spi-nand0 0xa0000 0x10       # 92 79 ... again
 
 Затем перезагрузитесь (`reset`) и продолжайте с [шага 5 установки](install-ssh.md#шаг-5-прошивка-через-веб-failsafe).
 
-OpenWrt в RAM — для бэкапа по SSH ([шаг 2 установки](install-ssh.md#шаг-2-бэкап)) или для тестов:
+## OpenWrt в RAM
+
+Для бэкапа по SSH ([шаг 2 установки](install-ssh.md#шаг-2-бэкап)), для калибровки на заводском флеше или для тестов:
 
 ```text
 U-Boot> setenv serverip 192.168.1.10
@@ -116,7 +119,10 @@ U-Boot> tftpboot 0x84000000 openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel
 U-Boot> bootm 0x84000000
 ```
 
-Скачайте `openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin` из [последнего релиза](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) и положите его в корень TFTP-сервера на ПК (`192.168.1.10`).
+Перед этим задайте ПК адрес `192.168.1.10/24` на кабеле к LAN-порту, скачайте `openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin` из [последнего релиза](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) и раздайте его по TFTP:
+
+- **macOS:** `sudo cp openwrt-…-initramfs-kernel.bin /private/tftpboot/ && sudo launchctl load -w /System/Library/LaunchDaemons/tftp.plist` (потом выключить через `unload`).
+- **Linux:** `sudo dnsmasq --no-daemon --port=0 --enable-tftp --tftp-root=$PWD` в папке с файлом, или `tftpd-hpa` с этой папкой в качестве корня.
 
 ## Что видно в логе
 

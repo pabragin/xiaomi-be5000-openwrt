@@ -42,8 +42,8 @@ Everything below is tested on a BE5000 running this firmware.
 
 ## 2. Requirements
 
-- **A router with root SSH access** on the Xiaomi stock firmware (or X-WRT). Getting root on the stock firmware is not covered here: see the [OpenWrt forum thread](https://forum.openwrt.org/t/xiaomi-be5000-wifi7-router/199438) and [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher). Already on OpenWrt xinyooo/iscle? You only need [`sysupgrade -n`](#from-xinyooo-or-iscle-openwrt).
-- **A computer** with macOS or Linux (on Windows use WSL): `ssh` and `curl`, and **a network cable** to the router.
+- **A router with root SSH access** on the Xiaomi stock firmware. Getting root on the stock firmware is not covered here: see the [OpenWrt forum thread](https://forum.openwrt.org/t/xiaomi-be5000-wifi7-router/199438) and [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher). Already on OpenWrt xinyooo/iscle? You only need [`sysupgrade -n`](#from-xinyooo-or-iscle-openwrt).
+- **A computer** with macOS or Linux (on Windows use WSL): `ssh`, `curl` and `git` (or download the repository as a ZIP from the green **Code** button), and **a network cable** to the router. `python3` is needed only for UART recovery.
 
 ## 3. Install
 
@@ -68,16 +68,26 @@ The script downloads the OpenWrt image from the [latest release](https://github.
 2. Open `http://192.168.1.1`, choose `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` downloaded in step 1 (the installer prints the full path), click **Upload**, then **Proceed**.
 3. Wait 5 minutes and do not cut the power. The router reboots into OpenWrt by itself.
 
-**Step 3. Setup.** Switch the computer back to an automatic address (DHCP), open `http://192.168.1.1`, set a password, then the country, Wi-Fi name and Wi-Fi password.
+**Step 3. Setup.** Switch the computer back to an automatic address (DHCP), open `http://192.168.1.1` and set a password. Then in **Network → Wireless** set the country, the network name and password and click **Enable** on both radios (Wi-Fi is off by default). All four ports are LAN by default: if this router connects to your provider, go to **Network → Interfaces**, add a `wan` interface (protocol DHCP client) and assign the provider's port to it, for example the 2.5G port.
 
 > [!CAUTION]
 > If the power is lost while the bootloader is being written, or the router does not show up on the network after step 1, only UART can bring it back (section 4).
+
+**Back to Xiaomi.** Only from the backup of step 1, and the procedure is not tested here: boot OpenWrt in RAM over UART and TFTP ([section 4](docs/en/recovery-uart.md#openwrt-in-ram)), copy the `mtdN-<name>.bin` files of the backup to the router and write each one with `mtd write mtdN-<name>.bin /dev/mtdN`, the bootloader (`mtd0`) last.
 
 Step-by-step install, the manual flash chip check and the `READ-ONLY` case: [docs/en/install-ssh.md](docs/en/install-ssh.md).
 
 ### From xinyooo or iscle OpenWrt
 
-Your bootloader already boots your flash chip and the calibration is already at `0xA0000`, so `install.sh` is not needed (and could not write the bootloader: `u-boot` is read-only on those images). Download the image from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest), copy it to the router and run `sysupgrade -n /tmp/<file>`. Settings are not kept: this image stores them in UBI, not JFFS2, because on W25N01KV flash JFFS2 corrupts writes and the router comes up with no network after a reboot ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)).
+Your bootloader already boots your flash chip and the calibration is already at `0xA0000`, so `install.sh` is not needed (and could not write the bootloader: `u-boot` is read-only on those images). On the computer:
+
+```sh
+curl -LO https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest/download/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin
+ssh root@192.168.1.1 'cat > /tmp/sysupgrade.bin' < openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin
+ssh root@192.168.1.1 sysupgrade -n /tmp/sysupgrade.bin
+```
+
+After the reboot the router is at `192.168.1.1`, root without a password, Wi-Fi off: continue with step 3. This path is not tested here yet. Settings are not kept: this image stores them in UBI, not JFFS2, because on W25N01KV flash JFFS2 corrupts writes and the router comes up with no network after a reboot ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)).
 
 ## 4. If the bootloader is broken: UART
 

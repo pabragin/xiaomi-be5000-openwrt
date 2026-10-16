@@ -42,8 +42,8 @@
 
 ## 2. Что нужно
 
-- **Роутер с root-доступом по SSH** на стоковой прошивке Xiaomi (или X-WRT). Как получить root на стоке, здесь не описано: см. [тему на форуме OpenWrt](https://forum.openwrt.org/t/xiaomi-be5000-wifi7-router/199438) и [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher). Уже стоит OpenWrt xinyooo/iscle? Нужен только [`sysupgrade -n`](#с-openwrt-xinyooo-или-iscle).
-- **Компьютер** с macOS или Linux (на Windows — WSL): `ssh` и `curl`, и **сетевой кабель** до роутера.
+- **Роутер с root-доступом по SSH** на стоковой прошивке Xiaomi. Как получить root на стоке, здесь не описано: см. [тему на форуме OpenWrt](https://forum.openwrt.org/t/xiaomi-be5000-wifi7-router/199438) и [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher). Уже стоит OpenWrt xinyooo/iscle? Нужен только [`sysupgrade -n`](#с-openwrt-xinyooo-или-iscle).
+- **Компьютер** с macOS или Linux (на Windows — WSL): `ssh`, `curl` и `git` (или скачайте репозиторий как ZIP через зелёную кнопку **Code**), и **сетевой кабель** до роутера. `python3` нужен только для восстановления по UART.
 
 ## 3. Установка
 
@@ -68,16 +68,26 @@ sh install.sh root@192.168.31.1        # 192.168.31.1 — адрес стока 
 2. Откройте `http://192.168.1.1`, выберите файл `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`, скачанный на шаге 1 (установщик печатает полный путь), нажмите **Upload**, затем **Proceed**.
 3. Подождите 5 минут и не выключайте питание. Роутер сам перезагрузится в OpenWrt.
 
-**Шаг 3. Настройка.** Верните компьютеру автоматический адрес (DHCP), откройте `http://192.168.1.1`, задайте пароль, затем страну, имя и пароль Wi-Fi.
+**Шаг 3. Настройка.** Верните компьютеру автоматический адрес (DHCP), откройте `http://192.168.1.1` и задайте пароль. Затем в **Network → Wireless** укажите страну, имя и пароль сети и нажмите **Enable** у обоих радио (Wi-Fi по умолчанию выключен). Все четыре порта по умолчанию LAN: если этот роутер подключается к провайдеру, в **Network → Interfaces** добавьте интерфейс `wan` (протокол DHCP client) и назначьте ему порт провайдера, например 2.5G.
 
 > [!CAUTION]
 > Если во время записи загрузчика пропало питание или после шага 1 роутер не появляется в сети, поднять его можно только по UART (раздел 4).
+
+**Назад на Xiaomi.** Только из бэкапа шага 1, и эта процедура здесь не проверялась: загрузите OpenWrt в память через UART и TFTP ([раздел 4](docs/ru/recovery-uart.md#openwrt-в-ram)), скопируйте на роутер файлы `mtdN-<имя>.bin` из бэкапа и запишите каждый командой `mtd write mtdN-<имя>.bin /dev/mtdN`, загрузчик (`mtd0`) последним.
 
 Каждый шаг по отдельности, ручная проверка чипа и случай `READ-ONLY`: [docs/ru/install-ssh.md](docs/ru/install-ssh.md).
 
 ### С OpenWrt xinyooo или iscle
 
-Ваш загрузчик уже грузит ваш чип флеша, а калибровка уже лежит в `0xA0000`, поэтому `install.sh` не нужен (и не смог бы записать загрузчик: на тех образах `u-boot` только для чтения). Скачайте образ из [последнего релиза](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest), скопируйте на роутер и выполните `sysupgrade -n /tmp/<файл>`. Настройки не сохраняются: этот образ хранит их в UBI, а не в JFFS2, потому что на флеше W25N01KV JFFS2 портит записи и роутер после перезагрузки поднимается без сети ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)).
+Ваш загрузчик уже грузит ваш чип флеша, а калибровка уже лежит в `0xA0000`, поэтому `install.sh` не нужен (и не смог бы записать загрузчик: на тех образах `u-boot` только для чтения). На компьютере:
+
+```sh
+curl -LO https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest/download/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin
+ssh root@192.168.1.1 'cat > /tmp/sysupgrade.bin' < openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin
+ssh root@192.168.1.1 sysupgrade -n /tmp/sysupgrade.bin
+```
+
+После перезагрузки роутер на `192.168.1.1`, root без пароля, Wi-Fi выключен: дальше шаг 3. Этот путь здесь ещё не проверялся. Настройки не сохраняются: этот образ хранит их в UBI, а не в JFFS2, потому что на флеше W25N01KV JFFS2 портит записи и роутер после перезагрузки поднимается без сети ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)).
 
 ## 4. Если загрузчик сломался: UART
 

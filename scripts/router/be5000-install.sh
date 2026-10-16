@@ -143,7 +143,7 @@ cmd_nand() {
 	case "$NAND_VERDICT" in
 		yes) echo "  SUPPORTED: the BL2 of be5000-bootloader-w25n01kv.bin knows $chip";;
 		no)  echo "  NOT SUPPORTED: $chip is not in the BL2 table - flashing would brick the router";;
-		*)   echo "  NOT IDENTIFIED: read the marking on the flash chip and compare it with docs/en/technical.md (supported NAND chips)";;
+		*)   echo "  NOT IDENTIFIED (reboot and run again first: the kernel log may have rotated): read the marking on the flash chip and compare it with docs/en/technical.md (supported NAND chips)";;
 	esac
 	[ "$chip" = W25N01KV ] && echo "  Note: xinyooo v2026.05/06 bootloaders and the X-WRT preloader do NOT know W25N01KV"
 }

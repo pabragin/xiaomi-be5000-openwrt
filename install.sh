@@ -40,7 +40,7 @@ else
 fi
 
 step "2/6 Connecting to $R (enter the router password once)"
-$SSH "$R" true || fail "could not SSH into $R. Check the address and password: sh install.sh root@ADDRESS"
+$SSH "$R" true || fail "could not SSH into $R. Check the address and password: sh install.sh root@ADDRESS. If the router already rebooted after a previous run, continue with the browser step from the README"
 upload scripts/router/be5000-install.sh
 upload "$BL"
 
@@ -54,7 +54,7 @@ if grep -q 'NOT SUPPORTED' "$C"; then
 	fail "the bootloader does not support your flash chip; writing it would brick the router. Open an issue with $C"
 fi
 if ! grep -q '^  SUPPORTED:' "$C"; then
-	[ "${BE5000_NAND_OK:-}" = 1 ] || fail "the flash chip was not identified. Read the marking on the chip, check it with scripts/pc/be5000-check-bootloader.py (see docs/en/install-ssh.md), then run: BE5000_NAND_OK=1 sh install.sh $R"
+	[ "${BE5000_NAND_OK:-}" = 1 ] || fail "the flash chip was not identified. First reboot the router and run again: the kernel log it is read from may have rotated. If it still fails, read the marking on the chip, check it with scripts/pc/be5000-check-bootloader.py (see docs/en/install-ssh.md), then run: BE5000_NAND_OK=1 sh install.sh $R"
 fi
 if grep -q 'Detected flash layout: unknown' "$C"; then
 	fail "unknown flash layout. Open an issue with $C"
@@ -67,7 +67,7 @@ if grep -q 'calibration block.*has data' "$C"; then
 fi
 
 step "4/6 Backing up the whole flash to $OUT (a few minutes)"
-sh scripts/pc/be5000-backup.sh "$R" "$OUT" || fail "backup verification failed, run it again"
+sh scripts/pc/be5000-backup.sh "$R" "$OUT" || fail "backup failed. If the output above shows an I/O error on a partition, the flash has a bad block there: open an issue with the output; otherwise run again"
 
 echo
 echo "Next step writes to flash. Backup: $(pwd)/$OUT - keep it somewhere safe."
@@ -76,11 +76,11 @@ read -r ans || ans=
 [ "$ans" = YES ] || fail "cancelled, nothing was written"
 
 step "5/6 Wi-Fi calibration"
-$SSH "$R" sh /tmp/be5000-install.sh calibration || fail "calibration was not written. The bootloader is untouched, the router works as before"
+$SSH "$R" sh /tmp/be5000-install.sh calibration || fail "calibration step failed. If the output above contains 'writing calibration', do NOT reboot the router: run sh install.sh again, it retries the write. Otherwise nothing was written and the router works as before"
 
 step "6/6 Bootloader (do not power off!)"
 $SSH "$R" "BE5000_NAND_OK=${BE5000_NAND_OK:-} sh /tmp/be5000-install.sh bootloader /tmp/$(basename "$BL")" \
-	|| fail "bootloader step failed. If the output above mentions 'mtd write' or 'written', do NOT reboot the router and open an issue; otherwise nothing was written"
+	|| fail "bootloader step failed. If the output above contains 'writing bootloader', do NOT reboot or power off the router and open an issue with the output; otherwise nothing was written"
 $SSH "$R" 'cat /tmp/be5000-mtd*-old-bootloader.bin' > "$OUT/old-bootloader.bin" 2>/dev/null || true
 $SSH "$R" reboot || true
 
