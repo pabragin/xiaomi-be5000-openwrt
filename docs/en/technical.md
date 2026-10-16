@@ -128,7 +128,7 @@ The MT7992 radio is attached over two PCIe links: `0000:01:00.0` (main) and `000
 | PCIe | Download (2x2 160 MHz client) |
 |---|---|
 | 2.5 GT/s x1 | ~1.05 Gbit/s |
-| 5 GT/s x1 | ~1.45 Gbit/s |
+| 5 GT/s x1 | ~1.45 Gbit/s (8 HTTP streams), 1735 Mbit/s in OpenSpeedTest |
 
 ## Supported NAND chips
 

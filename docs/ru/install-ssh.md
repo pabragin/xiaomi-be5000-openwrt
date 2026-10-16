@@ -34,7 +34,7 @@
 | `ssh`, `scp`, `python3` на ПК | скрипты в `scripts/pc/` |
 | кабель ПК ↔ LAN-порт | веб-failsafe работает только по проводу |
 | USB-UART 3.3 В | страховка: если запись загрузчика оборвётся, роутер поднимается только по UART |
-| [OpenWrt для BE5000](../../firmware/openwrt/) | `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` в этом репозитории ([описание сборки](../../firmware/openwrt/README.md)), SHA-256 `222d2c9f…` |
+| [OpenWrt для BE5000](../../firmware/openwrt/) | `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` в этом репозитории ([описание сборки](../../firmware/openwrt/README.md)), SHA-256 `a6af6bcb…` |
 
 ```sh
 git clone https://github.com/pabragin/xiaomi-be5000-openwrt && cd xiaomi-be5000-openwrt

@@ -34,7 +34,7 @@
 | `ssh`, `scp`, `python3` on the PC | scripts in `scripts/pc/` |
 | cable PC ↔ LAN port | web failsafe works only over a cable |
 | USB-UART 3.3 V | insurance: if the bootloader write is interrupted, the router can be recovered only over UART |
-| [OpenWrt for BE5000](../../firmware/openwrt/) | `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` in this repository ([about the build](../../firmware/openwrt/README.md)), SHA-256 `222d2c9f…` |
+| [OpenWrt for BE5000](../../firmware/openwrt/) | `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` in this repository ([about the build](../../firmware/openwrt/README.md)), SHA-256 `a6af6bcb…` |
 
 ```sh
 git clone https://github.com/pabragin/xiaomi-be5000-openwrt && cd xiaomi-be5000-openwrt
