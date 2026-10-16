@@ -102,7 +102,6 @@ Checksums and origin of the binaries: [firmware/bootloader/README.md](firmware/b
 
 ## 6. How it works
 
-- **Why it bricks.** BL2 reads the next stage from NAND using its own chip table. The BL2 from xinyooo v2026.05–v2026.06 (and the X-WRT preloader) has 56 chips, without W25N01KV. With that chip BL2 cannot read the FIP and calls `panic()`. After a warm reboot from Linux it sometimes boots, so test only with a cold boot.
 - **What is in the bootloader.** BL2 with a list of 57 NAND chips (including W25N01KV), BL31 and xinyooo U-Boot 2026.01 with autoboot and web failsafe.
 - **Why UART needs two files.** BootROM accepts at most `0x1F800` bytes over XMODEM, and only a FIP with a single BL2. Then BL2 itself prompts `Press x to update firmware`, accepts the full 512 KB image and writes it to flash.
 
