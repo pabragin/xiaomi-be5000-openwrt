@@ -11,7 +11,7 @@
 
 ## Contents
 
-1. [What you get](#1-what-you-get)
+1. [What works](#1-what-works)
 2. [Requirements](#2-requirements)
 3. [Install](#3-install) → details: [docs/en/install-ssh.md](docs/en/install-ssh.md)
 4. [If the bootloader is broken: UART](#4-if-the-bootloader-is-broken-uart) → details: [docs/en/recovery-uart.md](docs/en/recovery-uart.md)
@@ -20,23 +20,31 @@
 7. [Sources and credits](#7-sources-and-credits)
 8. [Feedback](#8-feedback)
 
-## 1. What you get
+## 1. What works
 
-| Component | State after install |
+Everything below is tested on a BE5000 running this firmware.
+
+| What | How it works |
 |---|---|
-| Bootloader (0x0–0x80000) | BL2 with W25N01KV support + BL31 + U-Boot 2026.01 (autoboot, web failsafe at `192.168.1.1`) |
-| Wi-Fi calibration | factory MT7992 EEPROM moved to block `0xA0000` (`art` partition) |
-| Firmware | OpenWrt (our build based on [iscle](https://github.com/iscle/openwrt)) in the `firmware` partition at `0xC0000`, 24 MiB |
-| Settings | `ubi` partition at `0x18C0000`, 40 MiB, `rootfs_data` volume (UBIFS) |
-| Ports | `lan1`–`lan3` (1 Gbit, DSA) and `eth1` (2.5 Gbit), all in `br-lan` |
-| Wi-Fi | 2.4 + 5 GHz, off by default. A 2x2 160 MHz client in OpenSpeedTest: 1757 Mbit/s download, 1643 Mbit/s upload ([test](firmware/openwrt/README.md#speed)) |
+| **5 GHz Wi-Fi** | 160 MHz, Wi-Fi 6/7. A 2x2 MacBook: **1757 Mbit/s** download, **1643 Mbit/s** upload ([test](firmware/openwrt/README.md#speed)) |
+| **2.4 GHz Wi-Fi** | works, 20/40 MHz |
+| **Hardware offload** | Wi-Fi ↔ wired traffic goes through the PPE and the NPU; the CPU is ~10% busy at full speed |
+| **Roaming** | 802.11r: phones and laptops move seamlessly between the BE5000 and another OpenWrt AP with the same network |
+| **Ports** | three 1 Gbit/s ports and one 2.5 Gbit/s port, all in one network |
+| **Settings** | survive reboots and power cuts, and are kept across firmware upgrades |
+| **Reboot** | warm and cold reboots without hangs; if the system hangs, the watchdog reboots it after ~30 s |
+| **Management** | LuCI web UI and SSH at `192.168.1.1`, upgrades with `sysupgrade` |
+| **MAC addresses** | from the router's label, taken from its factory calibration |
 
 <img src="images/openspeedtest-be5000.png" alt="OpenSpeedTest through the BE5000: 1757 Mbit/s download, 1643 Mbit/s upload" width="320">
 
-![Flash layout](images/flash-layout.en.svg)
+**Limitations:**
+- **Wi-Fi is off by default.** After installing, set the country, network name and password.
+- **Old WPA2-TKIP-only devices** (some printers, for example) connect unreliably and reconnect every few seconds.
+- **Download to a single fast client** tops out at about 1.45–1.75 Gbit/s. The limit is the PCIe link between the CPU and the radio (one lane, 5 GT/s).
 
 > [!WARNING]
-> The new flash layout overwrites the factory `bdata` and `Factory` partitions. You can return to the Xiaomi firmware only from the full backup the installer makes in step 1.
+> Installing overwrites the factory `bdata` and `Factory` partitions. You can return to the Xiaomi firmware only from the full backup the installer makes in step 1.
 
 ## 2. Requirements
 
@@ -103,6 +111,15 @@ Details, with photos and troubleshooting: [docs/en/recovery-uart.md](docs/en/rec
 Checksums and origin of the binaries: [firmware/bootloader/README.md](firmware/bootloader/README.md), [firmware/openwrt/README.md](firmware/openwrt/README.md).
 
 ## 6. How it works
+
+| Component | What is on the flash |
+|---|---|
+| Bootloader (0x0–0x80000) | BL2 with W25N01KV support + BL31 + U-Boot 2026.01 (autoboot, web failsafe at `192.168.1.1`) |
+| Wi-Fi calibration | factory MT7992 EEPROM moved to block `0xA0000` (`art` partition) |
+| Firmware | OpenWrt (our build based on [iscle](https://github.com/iscle/openwrt)) in the `firmware` partition at `0xC0000`, 24 MiB |
+| Settings | `ubi` partition at `0x18C0000`, 40 MiB, `rootfs_data` volume (UBIFS) |
+
+![Flash layout](images/flash-layout.en.svg)
 
 - **What is in the bootloader.** BL2 with a list of 57 NAND chips (including W25N01KV), BL31 and xinyooo U-Boot 2026.01 with autoboot and web failsafe.
 - **Why UART needs two files.** The BootROM accepts at most `0x1F800` bytes over XMODEM, and only a FIP with a single BL2. Then BL2 itself prompts `Press x to update firmware`, accepts the full 512 KB image and writes it to flash.
