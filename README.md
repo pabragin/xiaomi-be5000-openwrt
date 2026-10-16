@@ -26,7 +26,7 @@ Everything below is tested on a BE5000 running this firmware.
 
 | What | How it works |
 |---|---|
-| **System** | OpenWrt SNAPSHOT `r36539+835`, **Linux 6.18.55** kernel, mt76 Wi-Fi driver 2026-10-08 |
+| **System** | OpenWrt SNAPSHOT `r36539+836`, **Linux 6.18.55** kernel, mt76 Wi-Fi driver 2026-10-08 |
 | **5 GHz Wi-Fi** | 160 MHz, Wi-Fi 6/7. A 2x2 MacBook: **1757 Mbit/s** download, **1643 Mbit/s** upload ([test](firmware/openwrt/README.md#speed)) |
 | **2.4 GHz Wi-Fi** | works, 20/40 MHz |
 | **Hardware offload** | Wi-Fi ↔ wired traffic goes through the PPE and the NPU; the CPU is ~10% busy at full speed |

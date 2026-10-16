@@ -34,7 +34,7 @@
 | `ssh`, `scp`, `python3` на ПК | скрипты в `scripts/pc/` |
 | кабель ПК ↔ LAN-порт | веб-failsafe работает только по проводу |
 | USB-UART 3.3 В | страховка: если запись загрузчика оборвётся, роутер поднимается только по UART |
-| [OpenWrt для BE5000](../../firmware/openwrt/) | `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` в этом репозитории ([описание сборки](../../firmware/openwrt/README.md)), SHA-256 `a6af6bcb…` |
+| [OpenWrt для BE5000](../../firmware/openwrt/) | `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` в этом репозитории ([описание сборки](../../firmware/openwrt/README.md)), SHA-256 `2b5ab049…` |
 
 ```sh
 git clone https://github.com/pabragin/xiaomi-be5000-openwrt && cd xiaomi-be5000-openwrt
@@ -57,7 +57,7 @@ ssh $R sh /tmp/be5000-install.sh check
 >>> MTD partitions (index name offset size flags; flag 0x400 = writable)
   mtd0  u-boot         off=0x00000000 size=0x0007c000 RO
   mtd1  u-boot-env     off=0x0007c000 size=0x00004000 RO
-  mtd2  art            off=0x00080000 size=0x00040000 RO
+  mtd2  art            off=0x00080000 size=0x00040000 rw
   mtd3  firmware       off=0x000c0000 size=0x01800000 rw
   mtd4  kernel         off=0x00000000 size=0x003c0000 rw (inside firmware)
   mtd5  rootfs         off=0x003c0000 size=0x01440000 rw (inside firmware)
@@ -73,7 +73,7 @@ ssh $R sh /tmp/be5000-install.sh check
   Note: xinyooo v2026.05/06 bootloaders and the X-WRT preloader do NOT know W25N01KV
 >>> Detected flash layout: replacement
   bootloader partition: mtd0 'u-boot' size=0x7c000 READ-ONLY
-  calibration block 0xA0000: mtd2 'art' +0x20000, already contains MT7992 calibration, READ-ONLY
+  calibration block 0xA0000: mtd2 'art' +0x20000, already contains MT7992 calibration, rw
 ```
 
 | Строка | Что смотреть |
@@ -160,7 +160,7 @@ ssh $R sh /tmp/be5000-install.sh calibration
 | Сток Xiaomi, Factory на месте | `be5000-install.sh calibration` |
 | Калибровка уже в `0xA0000` (OpenWrt xinyooo/iscle) | та же команда ответит `calibration already in place` |
 | Factory уже затёрт, есть бэкап | `scp -O Factory.bin $R:/tmp/` и `be5000-install.sh calibration /tmp/Factory.bin` (4 МБ дамп или готовый блок 128 КБ) |
-| OpenWrt в RAM (initramfs) на заводском флеше | команда находит заводские данные `Factory` внутри `firmware`, но `art` в этой сборке только для чтения: запишите блок из [консоли U-Boot](recovery-uart.md#калибровка-из-консоли-u-boot) |
+| OpenWrt в RAM (initramfs) на заводском флеше | команда находит заводские данные `Factory` внутри `firmware` и пишет блок в `art`: в этой сборке раздел доступен на запись |
 
 На ПК то же самое делает `python3 scripts/pc/be5000-calibration.py Factory.bin calibration.bin`.
 
@@ -205,7 +205,8 @@ Wi-Fi по умолчанию выключен. В LuCI (`http://192.168.1.1`) �
 
 | Где | Что делать |
 |---|---|
-| OpenWrt (`replacement`), включая эту сборку и её initramfs | там `u-boot` и `art` только для чтения. Вариант без разборки: `kmod-mtd-rw` и `insmod mtd-rw i_want_a_brick=1` (на этой сборке не проверялся). Надёжный вариант: загрузчик через [UART](recovery-uart.md), калибровка из [консоли U-Boot](recovery-uart.md#калибровка-из-консоли-u-boot) |
+| OpenWrt из этого репозитория, установленный или в RAM | `art` доступен на запись (проверено), шаг 3 работает. `u-boot` только для чтения: загрузчик пишется через [UART](recovery-uart.md) |
+| OpenWrt iscle/xinyooo | там `u-boot` и `art` только для чтения. Вариант без разборки: `kmod-mtd-rw` и `insmod mtd-rw i_want_a_brick=1` (не проверялся). Надёжный вариант: для калибровки загрузить initramfs из этого репозитория по TFTP, загрузчик через [UART](recovery-uart.md) |
 | Сток Xiaomi | разделы загрузчика и калибровки на стоке доступны на запись (проверено), этот случай не возникает. Если всё же `READ-ONLY` — [UART](recovery-uart.md), затем шаг 5 этой инструкции |
 
 ## Если что-то пошло не так
@@ -215,4 +216,4 @@ Wi-Fi по умолчанию выключен. В LuCI (`http://192.168.1.1`) �
 | После шага 4 роутер не появляется в сети, светодиод не меняется | загрузчик не стартует | [UART](recovery-uart.md) |
 | `192.168.1.1` не открывается, но роутер жив | у ПК нет адреса в `192.168.1.0/24`, или кабель в порту 2.5G | задайте ПК `192.168.1.10/24`, используйте гигабитный LAN-порт |
 | failsafe пишет `not a valid firmware image for this board` | загружен не тот файл | нужен `squashfs-sysupgrade.bin` для `xiaomi_be5000` |
-| Wi-Fi со случайным MAC, в `dmesg` `eeprom load fail` | калибровки нет в `0xA0000` | в OpenWrt `art` только для чтения, запишите её из [консоли U-Boot](recovery-uart.md#калибровка-из-консоли-u-boot) (UART) |
+| Wi-Fi со случайным MAC, в `dmesg` `eeprom load fail` | калибровки нет в `0xA0000` | повторите шаг 3: `be5000-install.sh calibration`, с `Factory.bin` или `calibration.bin` из бэкапа, если заводских данных уже нет |

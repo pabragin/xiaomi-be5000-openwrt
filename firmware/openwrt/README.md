@@ -1,11 +1,11 @@
 # OpenWrt images
 
-Build of OpenWrt `main` (`r36539+835-98bc30d154`, Linux 6.18.55) with [iscle](https://github.com/iscle/openwrt)'s BE5000 series and the fixes from this repository. Installed and tested on the reference router (W25N01KV): web failsafe install, first boot, warm and cold reboots, `sysupgrade` with kept settings.
+Build of OpenWrt `main` (`r36539+836-98bc30d154`, Linux 6.18.55) with [iscle](https://github.com/iscle/openwrt)'s BE5000 series and the fixes from this repository. Installed and tested on the reference router (W25N01KV): web failsafe install, first boot, warm and cold reboots, `sysupgrade` with kept settings.
 
 | File | Size | Use |
 |---|---|---|
 | `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` | 11272464 | Install: upload in the U-Boot web failsafe (`http://192.168.1.1`) or `sysupgrade` from OpenWrt. Raw image of the `firmware` partition: FIT kernel + squashfs |
-| `openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin` | 10913816 | RAM-only system for recovery and tests: `tftpboot 0x84000000 …; bootm 0x84000000` in U-Boot. Does not touch flash |
+| `openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin` | 10910712 | RAM-only system for recovery and tests: `tftpboot 0x84000000 …; bootm 0x84000000` in U-Boot. Does not touch flash |
 
 Checksums: [`SHA256SUMS`](SHA256SUMS).
 
@@ -39,6 +39,7 @@ OpenSpeedTest from a MacBook (2x2, 160 MHz, about −40 dBm) to a PC on the wire
 - **Reboot:** the Wi-Fi chip, QDMA and NPU are stopped on shutdown, so a warm reboot does not loop.
 - **Watchdog:** the hardware watchdog works (`airoha,en7523-wdt`).
 - **NPU:** fixes for encrypted A-MSDU and a faster receive path in the NPU firmware.
+- **Writable `art`:** the calibration partition is not marked read-only, so `be5000-install.sh calibration` can write the block from OpenWrt, installed or in RAM. Nothing writes there on its own; the script refuses to erase a block that holds data.
 - **Wi-Fi MAC without calibration:** if `art` has no calibration, the driver uses the MediaTek default EEPROM with the same MAC on every unit. On first boot each radio then gets a random `macaddr_base`, kept in `/etc/config/wireless`.
 
 ## Notes

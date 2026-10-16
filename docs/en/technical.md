@@ -99,7 +99,7 @@ Both stages use XMODEM-CRC with 128-byte blocks.
 ## Wi-Fi calibration
 
 - **On stock:** the MT7992 EEPROM is at the start of the Factory partition (`0x180000`), 7680 bytes (`0x1E00`), starts with `92 79`, then the base MAC. The rest of the partition is `FF`.
-- **On the new flash layout:** OpenWrt reads the EEPROM from the second block of `art` (`0xA0000`) through NVMEM.
+- **On the new flash layout:** OpenWrt reads the EEPROM from the second block of `art` (`0xA0000`) through NVMEM. In this build the partition is writable, so the block can be written from OpenWrt; the iscle/xinyooo images mark it read-only.
 - **How it is moved:** `be5000-calibration.py` takes the first `0x1E00` bytes and pads them with `FF` to 128 KB.
 
 Without calibration, `dmesg` shows `mt7996e … eeprom load fail, use default bin`: the driver uses the MediaTek default EEPROM. Wi-Fi works, but its MAC `00:0c:43:26:60:10` is the same on every unit, so on first boot each radio gets a random `macaddr_base` in `/etc/config/wireless`.

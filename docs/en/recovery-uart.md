@@ -84,7 +84,7 @@ U-Boot immediately tries to boot OpenWrt from the `firmware` partition:
 | OpenWrt (iscle/xinyooo) | boots as usual | nothing |
 | empty or Xiaomi stock firmware | web failsafe comes up at `http://192.168.1.1` | [install step 5](install-ssh.md#step-5-firmware-via-web-failsafe) |
 
-If the flash still has the factory flash layout, move the calibration **before** step 5: the firmware is written from `0xC0000` and overwrites the stock `Factory` partition. In OpenWrt, including the initramfs, the `art` partition is read-only, so do it from the U-Boot console (next section).
+If the flash still has the factory flash layout, move the calibration **before** step 5: the firmware is written from `0xC0000` and overwrites the stock `Factory` partition. The simplest way: boot the OpenWrt initramfs from this repository over TFTP (section below) and run `be5000-install.sh calibration`; it finds the stock `Factory` data inside `firmware` and writes the block to `art`, which is writable in this build. Without the initramfs, use the U-Boot console (next section).
 
 To get to the U-Boot console, run the script with `--stop-autoboot`.
 

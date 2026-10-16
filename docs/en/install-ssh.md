@@ -34,7 +34,7 @@
 | `ssh`, `scp`, `python3` on the PC | scripts in `scripts/pc/` |
 | cable PC ↔ LAN port | web failsafe works only over a cable |
 | USB-UART 3.3 V | insurance: if the bootloader write is interrupted, the router can be recovered only over UART |
-| [OpenWrt for BE5000](../../firmware/openwrt/) | `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` in this repository ([about the build](../../firmware/openwrt/README.md)), SHA-256 `a6af6bcb…` |
+| [OpenWrt for BE5000](../../firmware/openwrt/) | `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` in this repository ([about the build](../../firmware/openwrt/README.md)), SHA-256 `2b5ab049…` |
 
 ```sh
 git clone https://github.com/pabragin/xiaomi-be5000-openwrt && cd xiaomi-be5000-openwrt
@@ -57,7 +57,7 @@ Example (router already on OpenWrt with the new flash layout):
 >>> MTD partitions (index name offset size flags; flag 0x400 = writable)
   mtd0  u-boot         off=0x00000000 size=0x0007c000 RO
   mtd1  u-boot-env     off=0x0007c000 size=0x00004000 RO
-  mtd2  art            off=0x00080000 size=0x00040000 RO
+  mtd2  art            off=0x00080000 size=0x00040000 rw
   mtd3  firmware       off=0x000c0000 size=0x01800000 rw
   mtd4  kernel         off=0x00000000 size=0x003c0000 rw (inside firmware)
   mtd5  rootfs         off=0x003c0000 size=0x01440000 rw (inside firmware)
@@ -73,7 +73,7 @@ Example (router already on OpenWrt with the new flash layout):
   Note: xinyooo v2026.05/06 bootloaders and the X-WRT preloader do NOT know W25N01KV
 >>> Detected flash layout: replacement
   bootloader partition: mtd0 'u-boot' size=0x7c000 READ-ONLY
-  calibration block 0xA0000: mtd2 'art' +0x20000, already contains MT7992 calibration, READ-ONLY
+  calibration block 0xA0000: mtd2 'art' +0x20000, already contains MT7992 calibration, rw
 ```
 
 | Line | What to look at |
@@ -160,7 +160,7 @@ What the command does:
 | Xiaomi stock firmware, Factory present | `be5000-install.sh calibration` |
 | Calibration already at `0xA0000` (OpenWrt xinyooo/iscle) | the same command answers `calibration already in place` |
 | Factory already overwritten, you have a backup | `scp -O Factory.bin $R:/tmp/` and `be5000-install.sh calibration /tmp/Factory.bin` (4 MB dump or a ready 128 KB block) |
-| OpenWrt in RAM (initramfs) on a stock flash | the command finds the stock `Factory` data inside `firmware`, but `art` is read-only in this build: write the block from the [U-Boot console](recovery-uart.md#calibration-from-the-u-boot-console) |
+| OpenWrt in RAM (initramfs) on a stock flash | the command finds the stock `Factory` data inside `firmware` and writes the block to `art`: the partition is writable in this build |
 
 On a PC the same is done by `python3 scripts/pc/be5000-calibration.py Factory.bin calibration.bin`.
 
@@ -205,7 +205,8 @@ Further updates are installed with the regular OpenWrt `sysupgrade`.
 
 | Where | What to do |
 |---|---|
-| OpenWrt (`replacement`), including this build and its initramfs | `u-boot` and `art` are read-only there. Option without opening the case: `kmod-mtd-rw` and `insmod mtd-rw i_want_a_brick=1` (not tested on this build). Reliable option: the bootloader over [UART](recovery-uart.md), the calibration from the [U-Boot console](recovery-uart.md#calibration-from-the-u-boot-console) |
+| OpenWrt from this repository, installed or in RAM | `art` is writable (tested), so step 3 works. `u-boot` is read-only: the bootloader is written over [UART](recovery-uart.md) |
+| OpenWrt iscle/xinyooo | `u-boot` and `art` are read-only there. Option without opening the case: `kmod-mtd-rw` and `insmod mtd-rw i_want_a_brick=1` (not tested). Reliable option: boot the initramfs from this repository over TFTP for the calibration, the bootloader over [UART](recovery-uart.md) |
 | Xiaomi stock firmware | the bootloader and calibration partitions are writable on stock (tested), so this case does not occur. If they still show `READ-ONLY`, use [UART](recovery-uart.md), then step 5 of this guide |
 
 ## If something goes wrong
@@ -215,4 +216,4 @@ Further updates are installed with the regular OpenWrt `sysupgrade`.
 | After step 4 the router does not appear on the network, the LED does not change | the bootloader does not start | [UART](recovery-uart.md) |
 | `192.168.1.1` does not open, but the router is alive | the PC has no address in `192.168.1.0/24`, or the cable is in the 2.5G port | set the PC to `192.168.1.10/24`, use a gigabit LAN port |
 | failsafe says `not a valid firmware image for this board` | wrong file uploaded | you need `squashfs-sysupgrade.bin` for `xiaomi_be5000` |
-| Wi-Fi has a random MAC, `dmesg` shows `eeprom load fail` | no calibration at `0xA0000` | `art` is read-only in OpenWrt, so write it from the [U-Boot console](recovery-uart.md#calibration-from-the-u-boot-console) (UART) |
+| Wi-Fi has a random MAC, `dmesg` shows `eeprom load fail` | no calibration at `0xA0000` | repeat step 3: `be5000-install.sh calibration`, with your `Factory.bin` or `calibration.bin` from the backup if the stock data is gone |
