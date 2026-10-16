@@ -45,7 +45,7 @@
 
 ## 3. Install
 
-**Step 1. One command on the computer.** Get the repository and run the installer with the router's address:
+**Step 1. One command on the computer.** Connect the computer by cable to a LAN port of the router (not the 2.5G port). Get the repository and run the installer with the router's address:
 
 ```sh
 git clone https://github.com/pabragin/xiaomi-be5000-openwrt && cd xiaomi-be5000-openwrt
@@ -59,10 +59,9 @@ The script asks for the router password once and then:
 4. reboots the router.
 
 **Step 2. Firmware in the browser.**
-1. Connect the computer by cable to a LAN port of the router (not the 2.5G port).
-2. Set the computer's address manually: IP `192.168.1.10`, mask `255.255.255.0`. On macOS: Settings → Network → (adapter) → Details → TCP/IP → Manually.
-3. Open `http://192.168.1.1`, choose [`firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`](firmware/openwrt/), click **Upload**, then **Proceed**.
-4. Wait 5 minutes and do not cut the power. The router reboots into OpenWrt by itself.
+1. Set the computer's address manually: IP `192.168.1.10`, mask `255.255.255.0`. On macOS: Settings → Network → (adapter) → Details → TCP/IP → Manually.
+2. Open `http://192.168.1.1`, choose [`firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`](firmware/openwrt/), click **Upload**, then **Proceed**.
+3. Wait 5 minutes and do not cut the power. The router reboots into OpenWrt by itself.
 
 **Step 3. Setup.** Switch the computer back to an automatic address (DHCP), open `http://192.168.1.1`, set a password, then the country, Wi-Fi name and Wi-Fi password.
 
