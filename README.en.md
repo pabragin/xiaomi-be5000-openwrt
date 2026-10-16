@@ -28,7 +28,7 @@
 | Firmware | OpenWrt (our build based on [iscle](https://github.com/iscle/openwrt)) in the `firmware` partition at `0xC0000`, 24 MiB |
 | Settings | `ubi` partition at `0x18C0000`, 40 MiB, `rootfs_data` volume (UBIFS) |
 | Ports | `lan1`–`lan3` (1 Gbit, DSA) and `eth1` (2.5 Gbit), all in `br-lan` |
-| Wi-Fi | 2.4 + 5 GHz, off by default. A 2x2 160 MHz client in OpenSpeedTest: 1735 Mbit/s download, 1644 Mbit/s upload ([test](firmware/openwrt/README.md#speed)) |
+| Wi-Fi | 2.4 + 5 GHz, off by default. A 2x2 160 MHz client in OpenSpeedTest: 1757 Mbit/s download, 1643 Mbit/s upload ([test](firmware/openwrt/README.md#speed)) |
 
 ![Flash layout](images/flash-layout.en.svg)
 

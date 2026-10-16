@@ -13,11 +13,11 @@ Checksums: [`SHA256SUMS`](SHA256SUMS).
 
 OpenSpeedTest from a MacBook (2x2, 160 MHz, about −40 dBm) to a PC on the wired LAN, through the BE5000:
 
-![OpenSpeedTest: 1735 Mbit/s download, 1644 Mbit/s upload](../../images/openspeedtest-be5000.png)
+![OpenSpeedTest: 1757 Mbit/s download, 1643 Mbit/s upload](../../images/openspeedtest-be5000.png)
 
 | Test | Download | Upload |
 |---|---|---|
-| OpenSpeedTest in the browser | 1735 Mbit/s | 1644 Mbit/s |
+| OpenSpeedTest in the browser | 1757 Mbit/s | 1643 Mbit/s |
 | 8 parallel HTTP streams, 5 minutes | 1348 Mbit/s | 1384 Mbit/s |
 
 ## Flash layout
