@@ -14,44 +14,44 @@ SSH="ssh $SSH_OPTS"
 SCP="scp -O $SSH_OPTS"
 
 step() { printf '\n=== %s\n' "$*"; }
-fail() { printf '\nСТОП: %s\nНичего страшного: роутер не тронут, если не сказано обратное.\n' "$*" >&2; exit 1; }
+fail() { printf '\nSTOP: %s\nNo harm done: the router is untouched unless stated otherwise.\n' "$*" >&2; exit 1; }
 trap 'ssh $SSH_OPTS -O exit "$R" 2>/dev/null || true' EXIT
 
-step "1/5 Подключение к $R (введите пароль роутера один раз)"
-$SSH "$R" true || fail "не удалось зайти по SSH на $R. Проверьте адрес и пароль: sh install.sh root@АДРЕС"
+step "1/5 Connecting to $R (enter the router password once)"
+$SSH "$R" true || fail "could not SSH into $R. Check the address and password: sh install.sh root@ADDRESS"
 $SCP scripts/router/be5000-install.sh "$BL" "$R:/tmp/" >/dev/null
 
-step "2/5 Проверка чипа памяти"
+step "2/5 Checking the flash chip"
 $SSH "$R" sh /tmp/be5000-install.sh nand | tee "/tmp/be5000-nand-$$.txt"
 grep -q SUPPORTED: "/tmp/be5000-nand-$$.txt" && ! grep -q 'NOT SUPPORTED' "/tmp/be5000-nand-$$.txt" \
-	|| fail "загрузчик не знает ваш чип памяти или чип не определился. Откройте issue и приложите вывод выше"
+	|| fail "the bootloader does not support your flash chip, or the chip was not detected. Open an issue with the output above"
 rm -f "/tmp/be5000-nand-$$.txt"
 
-step "3/5 Бэкап всего флеша в папку $OUT (несколько минут)"
-sh scripts/pc/be5000-backup.sh "$R" "$OUT" || fail "бэкап не сошёлся, повторите"
+step "3/5 Backing up the whole flash to $OUT (a few minutes)"
+sh scripts/pc/be5000-backup.sh "$R" "$OUT" || fail "backup verification failed, run it again"
 
 echo
-echo "Дальше запись во флеш. Бэкап: $(pwd)/$OUT — сохраните его в надёжное место."
-printf 'Напечатайте YES и нажмите Enter, чтобы продолжить: '
+echo "Next step writes to flash. Backup: $(pwd)/$OUT - keep it somewhere safe."
+printf 'Type YES and press Enter to continue: '
 read -r ans
-[ "$ans" = YES ] || fail "отменено"
+[ "$ans" = YES ] || fail "cancelled"
 
-step "4/5 Калибровка Wi-Fi"
-$SSH "$R" sh /tmp/be5000-install.sh calibration || fail "калибровка не записана. Загрузчик ещё не тронут, роутер работает как раньше"
+step "4/5 Wi-Fi calibration"
+$SSH "$R" sh /tmp/be5000-install.sh calibration || fail "calibration was not written. The bootloader is untouched, the router works as before"
 
-step "5/5 Загрузчик (не выключайте питание!)"
+step "5/5 Bootloader (do not power off!)"
 $SSH "$R" sh /tmp/be5000-install.sh bootloader "/tmp/$(basename "$BL")" \
-	|| fail "загрузчик не записан. НЕ перезагружайте роутер и откройте issue с выводом выше"
+	|| fail "bootloader was not written. Do NOT reboot the router; open an issue with the output above"
 $SCP "$R:/tmp/be5000-mtd*-old-bootloader.bin" "$OUT/" >/dev/null 2>&1 || true
 $SSH "$R" reboot || true
 
 cat <<EOF
 
-Готово, роутер перезагружается. Осталось залить прошивку через браузер:
-  1. Подключите ПК кабелем к порту LAN роутера (не к порту 2.5G).
-  2. Задайте ПК адрес вручную: IP 192.168.1.10, маска 255.255.255.0.
-  3. Через минуту откройте http://192.168.1.1
-  4. Выберите файл $(pwd)/firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin,
-     нажмите Upload, затем Proceed. Ждите 5 минут, питание не выключайте.
-  5. Верните ПК автоматический адрес (DHCP) и откройте http://192.168.1.1 снова.
+Done, the router is rebooting. Now flash the firmware from a browser:
+  1. Connect the PC by cable to a LAN port of the router (not the 2.5G port).
+  2. Set a static address on the PC: IP 192.168.1.10, netmask 255.255.255.0.
+  3. After a minute, open http://192.168.1.1
+  4. Choose the file $(pwd)/firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin,
+     click Upload, then Proceed. Wait 5 minutes, do not power off.
+  5. Switch the PC back to automatic addressing (DHCP) and open http://192.168.1.1 again.
 EOF
