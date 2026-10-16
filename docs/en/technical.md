@@ -97,22 +97,24 @@ Both stages use XMODEM-CRC with 128-byte blocks.
 ## Wi-Fi calibration
 
 - **On stock:** the MT7992 EEPROM is at the start of the Factory partition (`0x180000`), 7680 bytes (`0x1E00`), starts with `92 79`, then the base MAC. The rest of the partition is `FF`.
-- **On the new flash layout:** iscle OpenWrt reads the EEPROM from the second block of `art` (`0xA0000`) through NVMEM.
+- **On the new flash layout:** OpenWrt reads the EEPROM from the second block of `art` (`0xA0000`) through NVMEM.
 - **How it is moved:** `be5000-calibration.py` takes the first `0x1E00` bytes and pads them with `FF` to 128 KB.
 
-Without calibration, `dmesg` shows `mt7996e … eeprom load fail, use default bin`, and Wi-Fi gets a random MAC.
+Without calibration, `dmesg` shows `mt7996e … eeprom load fail, use default bin`: the driver uses the MediaTek default EEPROM. Wi-Fi works, but its MAC `00:0c:43:26:60:10` is the same on every unit, so on first boot each radio gets a random `macaddr_base` in `/etc/config/wireless`.
 
 ## OpenWrt image
 
-The iscle `squashfs-sysupgrade.bin` is not a tar but a ready image of the `firmware` partition:
+`squashfs-sysupgrade.bin` is not a tar but a ready image of the `firmware` partition:
 
 | Offset | What |
 |---|---|
 | `0x000000` | FIT (`d00dfeed`): kernel + DTB |
 | `0x3C0000` | squashfs (`hsqs`) |
-| after squashfs | `deadc0de` (overlay space), then sysupgrade metadata |
+| after squashfs | `deadc0de`, then sysupgrade metadata |
 
 U-Boot reads the first `fitsize = 0x500000` bytes of the partition and runs `bootm`. The web failsafe writes the uploaded file to the `firmware` partition as is.
+
+Settings are not in `firmware` but in a separate `ubi` partition (`0x18C0000`, 40 MiB), volume `rootfs_data` (UBIFS). JFFS2 does not work on W25N01KV: it programs page 0 of a block twice (cleanmarker in OOB, then data), and the chip's on-die ECC corrupts such a page ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)).
 
 ## Supported NAND chips
 

@@ -97,22 +97,24 @@ while (plat_check_header((uint8_t *) PLAT_ECNT_FIP_BASE) == 0) { panic(); }
 ## Калибровка Wi-Fi
 
 - **На стоке:** EEPROM MT7992 в начале раздела Factory (`0x180000`), 7680 байт (`0x1E00`), начинается с `92 79`, затем базовый MAC. Остаток раздела `FF`.
-- **На новой разметке:** OpenWrt iscle читает EEPROM из второго блока `art` (`0xA0000`) через NVMEM.
+- **На новой разметке:** OpenWrt читает EEPROM из второго блока `art` (`0xA0000`) через NVMEM.
 - **Как переносится:** `be5000-calibration.py` берёт первые `0x1E00` байт и добавляет `FF` до 128 КБ.
 
-Без калибровки в `dmesg` будет `mt7996e … eeprom load fail, use default bin`, а у Wi-Fi будет случайный MAC.
+Без калибровки в `dmesg` будет `mt7996e … eeprom load fail, use default bin`: драйвер берёт стандартную EEPROM MediaTek. Wi-Fi работает, но её MAC `00:0c:43:26:60:10` одинаковый у всех роутеров, поэтому на первой загрузке каждое радио получает случайный `macaddr_base` в `/etc/config/wireless`.
 
 ## Образ OpenWrt
 
-`squashfs-sysupgrade.bin` от iscle — не tar, а готовый образ раздела `firmware`:
+`squashfs-sysupgrade.bin` — не tar, а готовый образ раздела `firmware`:
 
 | Смещение | Что |
 |---|---|
 | `0x000000` | FIT (`d00dfeed`): ядро + DTB |
 | `0x3C0000` | squashfs (`hsqs`) |
-| после squashfs | `deadc0de` (место под overlay), затем метаданные sysupgrade |
+| после squashfs | `deadc0de`, затем метаданные sysupgrade |
 
 U-Boot читает первые `fitsize = 0x500000` байт раздела и выполняет `bootm`. Веб-failsafe пишет загруженный файл в раздел `firmware` как есть.
+
+Настройки лежат не в `firmware`, а в отдельном разделе `ubi` (`0x18C0000`, 40 МБ), том `rootfs_data` (UBIFS). JFFS2 на W25N01KV не годится: он программирует страницу 0 блока дважды (cleanmarker в OOB, потом данные), и встроенный ECC чипа такую страницу портит ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)).
 
 ## Поддерживаемые чипы NAND
 

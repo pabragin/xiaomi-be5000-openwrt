@@ -34,7 +34,7 @@
 | `ssh`, `scp`, `python3` on the PC | scripts in `scripts/pc/` |
 | cable PC ↔ LAN port | web failsafe works only over a cable |
 | USB-UART 3.3 V | insurance: if the bootloader write is interrupted, the router can be recovered only over UART |
-| [OpenWrt for BE5000](../../firmware/openwrt/) | `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` in this repository ([iscle](https://github.com/iscle/openwrt/releases/tag/be5000-upstream-ppe-20260925) release), SHA-256 `4c2cdc40…` |
+| [OpenWrt for BE5000](../../firmware/openwrt/) | `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` in this repository ([about the build](../../firmware/openwrt/README.md)), SHA-256 `d5be9845…` |
 
 ```sh
 git clone https://github.com/pabragin/xiaomi-be5000-openwrt && cd xiaomi-be5000-openwrt
@@ -171,8 +171,8 @@ The script checks the FIP header of the image, saves the old bootloader to `/tmp
 2. U-Boot tries to boot OpenWrt from the `firmware` partition. It still holds stock data, so the boot fails, and the recovery page comes up in a few seconds.
 3. Connect the PC to a LAN port with a cable and set its address by hand: `192.168.1.10`, netmask `255.255.255.0`.
 4. Open `http://192.168.1.1`, select [`firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`](../../firmware/openwrt/), click **Upload**.
-5. On the confirmation page check the MD5 and the size (`11272463` bytes) and click **Proceed**. U-Boot erases the whole `firmware` partition (64 MiB) and writes the image. This takes **3–5 minutes**; the page may stop responding. Do not power off. The router then reboots into OpenWrt.
-6. The first boot takes longer: OpenWrt formats `rootfs_data`. A `mount_root: failed to sync jffs2 overlay` message on the first boot is harmless; from the next boot on the log shows `switching to jffs2 overlay`.
+5. On the confirmation page check the MD5 and the size (`11272464` bytes) and click **Proceed**. U-Boot erases its `firmware` partition (64 MiB, including the `ubi` settings partition) and writes the image. This takes **3–5 minutes**; the page may stop responding. Do not power off. The router then reboots into OpenWrt.
+6. On the first boot OpenWrt creates the `rootfs_data` volume for settings in the `ubi` partition. The log shows `- creating rootfs_data UBI volume -` and `mount_root: switching to ubifs overlay`.
 
 > [!TIP]
 > **macOS:** if `192.168.1.1` stops opening after the router reboots, macOS has lost the route on that interface. Set the address in "Settings → Network → (adapter) → Details → TCP/IP → Manually", not with `ifconfig alias`.

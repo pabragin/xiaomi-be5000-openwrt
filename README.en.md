@@ -6,7 +6,7 @@
 > **TL;DR.** This repository shows how to install OpenWrt on the Xiaomi BE5000 with only root SSH access, and how to recover the router over UART if the bootloader is broken.
 > - **Main trap:** the bootloader from the xinyooo releases and the X-WRT preloader do not know the **Winbond W25N01KV** flash chip. With this chip the router crashes on every cold boot with `PANIC at PC : 0x810017a9`.
 > - **This repository has a bootloader that knows it:** [`be5000-bootloader-w25n01kv.bin`](firmware/bootloader/), 57 NAND chips, U-Boot with autoboot and web recovery.
-> - **Tested on hardware:** BE5000 (AN7563PT, W25N01KV, 512 MB DDR3): SSH install from Xiaomi stock firmware, UART recovery, web failsafe install, cold boot, OpenWrt `be5000-upstream-ppe-20260925`, its own Wi-Fi calibration.
+> - **Tested on hardware:** BE5000 (AN7563PT, W25N01KV, 512 MB DDR3): SSH install from Xiaomi stock firmware, UART recovery, web failsafe install, cold boot, our own OpenWrt build with settings in UBI, its own Wi-Fi calibration.
 
 ## Contents
 
@@ -25,7 +25,8 @@
 |---|---|
 | Bootloader (0x0–0x80000) | BL2 with W25N01KV support + BL31 + U-Boot 2026.01 (autoboot, web failsafe at `192.168.1.1`) |
 | Wi-Fi calibration | factory MT7992 EEPROM moved to block `0xA0000` (`art` partition) |
-| Firmware | OpenWrt by [iscle](https://github.com/iscle/openwrt/releases) in the `firmware` partition at `0xC0000` |
+| Firmware | OpenWrt (our build based on [iscle](https://github.com/iscle/openwrt)) in the `firmware` partition at `0xC0000`, 24 MiB |
+| Settings | `ubi` partition at `0x18C0000`, 40 MiB, `rootfs_data` volume (UBIFS) |
 | Ports | `lan1`–`lan3` (1 Gbit, DSA) and `eth1` (2.5 Gbit), all in `br-lan` |
 | Wi-Fi | 2.4 + 5 GHz, off by default |
 
@@ -39,8 +40,8 @@
 - **A router you can reach over SSH** (root and its password). It does not matter what runs on it: Xiaomi stock firmware, OpenWrt xinyooo/iscle or X-WRT.
 - **A computer** with macOS or Linux (on Windows use WSL) and **a network cable** to the router.
 
-> [!WARNING]
-> On W25N01KV flash, firmware that keeps settings in JFFS2 stops booting normally after the first settings change: the next boot comes up read-only with no network ([issue #1](../../issues/1)). This applies to the image in `firmware/openwrt/`. A build with settings in UBI is being tested.
+> [!NOTE]
+> Settings are kept in UBI, not JFFS2: on W25N01KV flash JFFS2 corrupts writes, and after a reboot the router comes up with no network ([issue #1](../../issues/1)). Moving from iscle/xinyooo OpenWrt to this image does not keep settings (`sysupgrade -n`).
 
 ## 3. Install
 
@@ -91,7 +92,7 @@ Details, with photos and an error table: [docs/en/recovery-uart.md](docs/en/reco
 | [`firmware/bootloader/be5000-bootloader-w25n01kv.bin`](firmware/bootloader/) | 512 KB bootloader: BL2 (57 NAND chips) + BL31 + U-Boot | flash `0x0` (SSH: `be5000-install.sh bootloader`; UART: XMODEM #2) |
 | [`firmware/bootloader/be5000-uart-bl2-stage1.bin`](firmware/bootloader/) | the same BL2 in a mini FIP | UART only, XMODEM #1 to BootROM |
 | `calibration.bin` (you make it) | MT7992 EEPROM of your router, 128 KB | flash `0xA0000` |
-| [`firmware/openwrt/…-squashfs-sysupgrade.bin`](firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin) | OpenWrt ([iscle](https://github.com/iscle/openwrt/releases/tag/be5000-upstream-ppe-20260925)): FIT kernel + squashfs | `firmware` partition `0xC0000` (web failsafe or `sysupgrade`) |
+| [`firmware/openwrt/…-squashfs-sysupgrade.bin`](firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin) | OpenWrt ([about the build](firmware/openwrt/README.md)): FIT kernel + squashfs | `firmware` partition `0xC0000` (web failsafe or `sysupgrade`) |
 | [`firmware/openwrt/…-initramfs-kernel.bin`](firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin) | OpenWrt in RAM for testing and recovery | TFTP → `bootm`, does not touch flash |
 | [`install.sh`](install.sh) | one-command install: check, backup, calibration, bootloader | runs on the computer |
 | [`scripts/router/be5000-install.sh`](scripts/router/be5000-install.sh) | check, write calibration and bootloader with read-back verification | runs on the router |
@@ -111,7 +112,7 @@ Details, with logs and addresses: [docs/en/technical.md](docs/en/technical.md).
 
 - [xinyooo](https://github.com/xinyooo/openwrt/releases): AN7563 port, U-Boot with web failsafe, [PR #23960](https://github.com/openwrt/openwrt/pull/23960), [forum thread](https://forum.openwrt.org/t/release-custom-openwrt-u-boot-for-xiaomi-be5000-an7563/250004).
 - [100PoR-new](https://github.com/openwrt/openwrt/pull/23960#issuecomment-6173662443): BL2 with W25N01KV (built with [make_airoha_atf](https://github.com/xinyooo/make_airoha_atf)) and the GPIO0 photo.
-- [iscle](https://github.com/iscle/openwrt): OpenWrt builds, flash layout with calibration in `art`, DSA, PPE, Wi-Fi.
+- [iscle](https://github.com/iscle/openwrt): OpenWrt port for the BE5000, flash layout with calibration in `art`, DSA, PPE, Wi-Fi.
 - [Ansuel/atf-airoha](https://github.com/Ansuel/atf-airoha): BL2 sources used to work out the XMODEM recovery format.
 - [Medvedolog, issue #17](https://github.com/Medvedolog/airoha-router-ursusflasher/issues/17): AN7552 BootROM observations.
 

@@ -1,14 +1,36 @@
 # OpenWrt images
 
-Copied unchanged from [iscle/openwrt release `be5000-upstream-ppe-20260925`](https://github.com/iscle/openwrt/releases/tag/be5000-upstream-ppe-20260925) (OpenWrt `r36539+20-98bc30d154`, Linux 6.18.52). This is the build installed and tested on the reference router (W25N01KV, cold boot, web failsafe install, 802.11r roaming).
+Build of OpenWrt `main` (`r36539+833-98bc30d154`, Linux 6.18.55) with [iscle](https://github.com/iscle/openwrt)'s BE5000 series and the fixes from this repository. Installed and tested on the reference router (W25N01KV): web failsafe install, first boot, warm and cold reboots, `sysupgrade` with kept settings.
 
 | File | Size | Use |
 |---|---|---|
-| `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` | 11272463 | Install: upload in the U-Boot web failsafe (`http://192.168.1.1`) or `sysupgrade` from OpenWrt. Raw image of the `firmware` partition: FIT kernel + squashfs |
-| `openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin` | 10745180 | RAM-only system for recovery and tests: `tftpboot 0x84000000 …; bootm 0x84000000` in U-Boot. Does not touch flash |
+| `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` | 11272464 | Install: upload in the U-Boot web failsafe (`http://192.168.1.1`) or `sysupgrade` from OpenWrt. Raw image of the `firmware` partition: FIT kernel + squashfs |
+| `openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin` | 10909812 | RAM-only system for recovery and tests: `tftpboot 0x84000000 …; bootm 0x84000000` in U-Boot. Does not touch flash |
 
-Checksums: [`SHA256SUMS`](SHA256SUMS) (identical to the release `sha256sums`).
+Checksums: [`SHA256SUMS`](SHA256SUMS).
+
+## Flash layout
+
+| Partition | Offset, size | Contents |
+|---|---|---|
+| `firmware` | `0xC0000`, 24 MiB | raw FIT (kernel + squashfs), the bootloader boots it as is |
+| `ubi` | `0x18C0000`, 40 MiB | UBI with the `rootfs_data` volume (UBIFS): settings and installed packages |
+
+- **Settings in UBI:** JFFS2 programs page 0 of an erase block twice (cleanmarker in OOB, then data), and the on-die ECC of W25N01KV corrupts such pages ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)). UBI programs each page once.
+- **First boot:** the `rootfs_data` volume is created in the empty `ubi` partition.
+- **sysupgrade:** writes the FIT, recreates `rootfs_data` and saves the kept settings there.
+
+## Differences from iscle's builds
+
+- **Settings in UBI** instead of JFFS2 (see above).
+- **Reboot:** the Wi-Fi chip, QDMA and NPU are stopped on shutdown, so a warm reboot does not loop.
+- **Watchdog:** the hardware watchdog works (`airoha,en7523-wdt`).
+- **NPU:** fixes for encrypted A-MSDU and a faster receive path in the NPU firmware.
+- **Wi-Fi MAC without calibration:** if `art` has no calibration, the driver uses the MediaTek default EEPROM with the same MAC on every unit. On first boot each radio then gets a random `macaddr_base`, kept in `/etc/config/wireless`.
+
+## Notes
 
 - **Requires** the bootloader from [`../bootloader/`](../bootloader/) (replacement flash layout, calibration at `0xA0000`). Not a Xiaomi stock web-upgrade image.
+- **Upgrading from an image with JFFS2 settings** (iscle, xinyooo): use `sysupgrade -n`. The old system would append the settings as JFFS2 inside `firmware`, where this image does not look.
 - **Defaults:** LAN `192.168.1.1`, DHCP server on, root without password, Wi-Fi disabled.
-- **Source and licence:** OpenWrt is GPL-2.0; sources, build config and feeds are in the release linked above.
+- **Source and licence:** OpenWrt is GPL-2.0. The patch series on top of OpenWrt `27f0f3ebd1` and the build config (`diffconfig`) are attached to the [release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/tag/be5000-openwrt-20261016).
