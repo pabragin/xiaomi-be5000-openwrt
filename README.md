@@ -38,12 +38,12 @@ Everything below is tested on a BE5000 running this firmware.
 
 <img src="images/openspeedtest-be5000.png" alt="OpenSpeedTest through the BE5000: 1757 Mbit/s download, 1643 Mbit/s upload" width="320">
 
-**Limitation:** download to a single fast client tops out at about 1.45–1.75 Gbit/s. The limit is the PCIe link between the CPU and the radio (one lane, 5 GT/s).
+**Limitation:** download to a single fast client tops out at about 1.35–1.75 Gbit/s. The limit is the PCIe link between the CPU and the radio (one lane, 5 GT/s).
 
 ## 2. Requirements
 
 - **A router with root SSH access** on the Xiaomi stock firmware. Getting root on the stock firmware is not covered here: see the [OpenWrt forum thread](https://forum.openwrt.org/t/xiaomi-be5000-wifi7-router/199438) and [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher). Already on OpenWrt xinyooo/iscle? You only need [`sysupgrade -n`](#from-xinyooo-or-iscle-openwrt).
-- **A computer** with macOS or Linux (on Windows use WSL): `ssh`, `curl` and `git` (or download the repository as a ZIP from the green **Code** button), and **a network cable** to the router. `python3` is needed only for UART recovery.
+- **A computer** with macOS or Linux (on Windows use WSL): `ssh`, `curl` and `git` (or download the repository as a ZIP from the green **Code** button), and **a network cable** to the router. `python3` is needed only for UART recovery and the bootloader check script.
 
 ## 3. Install
 
@@ -68,12 +68,12 @@ The script downloads the OpenWrt image from the [latest release](https://github.
 2. Open `http://192.168.1.1`, choose `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` downloaded in step 1 (the installer prints the full path), click **Upload**, then **Proceed**.
 3. Wait 5 minutes and do not cut the power. The router reboots into OpenWrt by itself.
 
-**Step 3. Setup.** Switch the computer back to an automatic address (DHCP), open `http://192.168.1.1` and set a password. Then in **Network → Wireless** set the country, the network name and password and click **Enable** on both radios (Wi-Fi is off by default). All four ports are LAN by default: if this router connects to your provider, go to **Network → Interfaces**, add a `wan` interface (protocol DHCP client) and assign the provider's port to it, for example the 2.5G port.
+**Step 3. Setup.** Switch the computer back to an automatic address (DHCP), open `http://192.168.1.1` and set a password. Then in **Network → Wireless** set the country, the network name and password and click **Enable** on both radios (Wi-Fi is off by default). All four ports are LAN by default: if this router connects to your provider, go to **Network → Interfaces**, first remove the provider's port (for example the 2.5G one) from the LAN bridge (**Devices → br-lan → Bridge ports**), then add a `wan` interface with protocol **DHCP client** on that port.
 
 > [!CAUTION]
 > If the power is lost while the bootloader is being written, or the router does not show up on the network after step 1, only UART can bring it back (section 4).
 
-**Back to Xiaomi.** Only from the backup of step 1, and the procedure is not tested here: boot OpenWrt in RAM over UART and TFTP ([section 4](docs/en/recovery-uart.md#openwrt-in-ram)), copy the `mtdN-<name>.bin` files of the backup to the router and write each one with `mtd write mtdN-<name>.bin /dev/mtdN`, the bootloader (`mtd0`) last.
+**Back to Xiaomi.** Only from the backup of step 1, and not tested here. The stock partitions do not match OpenWrt's, so they are written by absolute offset from the U-Boot console over UART (`python3 scripts/pc/be5000-uart-recover.py PORT --console`, the `mtd` commands are in [the UART guide](docs/en/recovery-uart.md#calibration-from-the-u-boot-console)): for every `mtdN-<name>.bin` of the backup, `tftpboot 0x84000000 mtdN-<name>.bin`, `mtd erase spi-nand0 OFFSET SIZE`, `mtd write spi-nand0 0x84000000 OFFSET SIZE`, with OFFSET and SIZE taken from the backup's `sysfs_mtd.txt`; the bootloader (`mtd0`, offset 0) last. The bootloader can also be written by the recovery script: `python3 scripts/pc/be5000-uart-recover.py PORT --image be5000-backup-<date>/mtd0-<name>.bin`.
 
 Step-by-step install, the manual flash chip check and the `READ-ONLY` case: [docs/en/install-ssh.md](docs/en/install-ssh.md).
 

@@ -9,6 +9,7 @@ Run the script first, then short GPIO0 to GND and power the router on.
 
   python3 be5000-uart-recover.py /dev/ttyUSB0
   python3 be5000-uart-recover.py /dev/cu.usbserial-0001 --stop-autoboot
+  python3 be5000-uart-recover.py /dev/ttyUSB0 --console      # U-Boot console on a working router
 
 macOS and Linux (termios). On Windows use WSL with usbipd or a Linux live USB.
 """
@@ -117,7 +118,27 @@ def terminal(port):
             line = sys.stdin.readline()
             if not line:
                 return
-            port.write(line.rstrip("\n").encode() + b"\r")
+            port.write(line.rstrip("\r\n").encode() + b"\r")
+
+
+def wait_uboot(port, stop_autoboot, timeout):
+    """Echo the console until U-Boot's prompt, the web failsafe or a kernel start; optionally interrupt autoboot."""
+    buf, t = b"", time.time()
+    while time.time() - t < timeout:
+        r, _, _ = select.select([port.fd], [], [], 0.2)
+        if not r:
+            continue
+        d = os.read(port.fd, 4096)
+        port.log.write(d)
+        sys.stdout.write(d.decode("latin1"))
+        buf = (buf + d)[-400:]
+        if stop_autoboot and b"autoboot" in buf:
+            for _ in range(5):
+                port.write(b"\x03\r")
+                time.sleep(0.05)
+        if buf.rstrip().endswith(b"U-Boot>") or b"Failsafe Web UI" in buf or b"Starting kernel" in buf:
+            break
+    return buf
 
 
 def main():
@@ -126,8 +147,20 @@ def main():
     ap.add_argument("--stage1", default=os.path.join(FW, "be5000-uart-bl2-stage1.bin"))
     ap.add_argument("--image", default=os.path.join(FW, "be5000-bootloader-w25n01kv.bin"))
     ap.add_argument("--stop-autoboot", action="store_true", help="interrupt U-Boot autoboot and stay at the prompt")
+    ap.add_argument("--console", action="store_true", help="no recovery: wait for U-Boot on a working router, interrupt autoboot and stay at the prompt")
     ap.add_argument("--log", default="be5000-uart.log")
     args = ap.parse_args()
+
+    if args.console:
+        port = Port(args.port, args.log)
+        say("Console mode: power the router off and on now (no GPIO0); if U-Boot already shows its prompt, press Enter here")
+        port.write(b"\r")
+        buf = wait_uboot(port, True, 600)
+        print()
+        if not buf.rstrip().endswith(b"U-Boot>"):
+            sys.exit("no U-Boot prompt within 10 minutes - see the log")
+        terminal(port)
+        return
 
     image = open(args.image, "rb").read()
     if len(image) != 0x80000 or image[0x800:0x804] != bytes.fromhex("010064aa"):
@@ -145,21 +178,7 @@ def main():
     xmodem_send(port, args.image)
     say("Bootloader sent; BL2 writes it to flash and starts U-Boot")
 
-    buf, t = b"", time.time()
-    while time.time() - t < 180:
-        r, _, _ = select.select([port.fd], [], [], 0.2)
-        if not r:
-            continue
-        d = os.read(port.fd, 4096)
-        port.log.write(d)
-        sys.stdout.write(d.decode("latin1"))
-        buf = (buf + d)[-400:]
-        if args.stop_autoboot and b"autoboot" in buf:
-            for _ in range(5):
-                port.write(b"\x03\r")
-                time.sleep(0.05)
-        if buf.rstrip().endswith(b"U-Boot>") or b"Failsafe Web UI" in buf or b"Starting kernel" in buf:
-            break
+    buf = wait_uboot(port, args.stop_autoboot, 180)
     print()
     say("Done. Remove the GPIO0 short now, otherwise the next boot enters BootROM recovery again.")
     if args.stop_autoboot and buf.rstrip().endswith(b"U-Boot>"):

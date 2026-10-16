@@ -43,7 +43,7 @@
 | `0x0C0000` | ↑ | firmware: kernel (FIT) | `0x3C0000` |
 | `0x100000` | bdata (`ethaddr=…`) | ↑ | |
 | `0x180000` | **Factory** (EEPROM `92 79` + MAC) | firmware: rootfs | |
-| `0x580000` | crash | ↑ | |
+| `0x580000` | crash, `0x5C0000` crash_log | ↑ | |
 | `0x600000` | kernel (stock) | ↑ | |
 | `0xC00000` | ubi (stock) | ↑ | |
 | `0x18C0000` | ↑ | ubi: `rootfs_data` (settings) | `0x2800000` |

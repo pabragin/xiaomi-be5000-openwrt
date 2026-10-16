@@ -62,6 +62,12 @@ fi
 if grep -q 'bootloader partition:.*READ-ONLY' "$C"; then
 	fail "this system cannot write the bootloader (partition read-only). On OpenWrt xinyooo/iscle you do not need it: install the image with sysupgrade -n (see README). Otherwise see docs/en/install-ssh.md, READ-ONLY"
 fi
+if grep -q 'bootloader partition: not found' "$C"; then
+	fail "no partition starts at flash offset 0, so the bootloader cannot be written from this system. Open an issue with $C"
+fi
+if grep -q 'calibration block.*READ-ONLY' "$C"; then
+	fail "the calibration partition is read-only in this system, see docs/en/install-ssh.md, READ-ONLY"
+fi
 if grep -q 'calibration block.*has data' "$C"; then
 	fail "block 0xA0000 holds unknown data and the script never erases it. Open an issue with $C"
 fi
@@ -76,11 +82,11 @@ read -r ans || ans=
 [ "$ans" = YES ] || fail "cancelled, nothing was written"
 
 step "5/6 Wi-Fi calibration"
-$SSH "$R" sh /tmp/be5000-install.sh calibration || fail "calibration step failed. If the output above contains 'writing calibration', do NOT reboot the router: run sh install.sh again, it retries the write. Otherwise nothing was written and the router works as before"
+$SSH "$R" sh /tmp/be5000-install.sh calibration || fail "calibration step failed. If the output above contains 'writing calibration', do NOT reboot or power off the router: run sh install.sh again right away, it writes the block again from the copy saved before the first attempt. Otherwise nothing was written and the router works as before"
 
 step "6/6 Bootloader (do not power off!)"
 $SSH "$R" "BE5000_NAND_OK=${BE5000_NAND_OK:-} sh /tmp/be5000-install.sh bootloader /tmp/$(basename "$BL")" \
-	|| fail "bootloader step failed. If the output above contains 'writing bootloader', do NOT reboot or power off the router and open an issue with the output; otherwise nothing was written"
+	|| fail "bootloader step failed. If the output above contains 'writing bootloader', do NOT reboot or power off the router: run sh install.sh again right away, it writes the bootloader again; if that fails too, open an issue with the output. Otherwise nothing was written"
 $SSH "$R" 'cat /tmp/be5000-mtd*-old-bootloader.bin' > "$OUT/old-bootloader.bin" 2>/dev/null || true
 $SSH "$R" reboot || true
 

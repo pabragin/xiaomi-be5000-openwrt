@@ -87,7 +87,7 @@ U-Boot immediately tries to boot OpenWrt from the `firmware` partition:
 
 If the flash still has the factory flash layout, move the calibration **before** step 5: the firmware is written from `0xC0000` and overwrites the stock `Factory` partition. The simplest way: boot the OpenWrt initramfs from the release over TFTP (section below), copy the script to it (`ssh root@192.168.1.1 'cat > /tmp/be5000-install.sh' < scripts/router/be5000-install.sh`) and run `ssh root@192.168.1.1 sh /tmp/be5000-install.sh calibration`; it finds the stock `Factory` data inside `firmware` and writes the block to `art`, which is writable in this build. Without the initramfs, use the U-Boot console (next section).
 
-To get to the U-Boot console, run the script with `--stop-autoboot`: it interrupts the autoboot and then works as a terminal, so type the commands below into it; Ctrl-C quits it.
+To get to the U-Boot console on a router that boots, run `python3 scripts/pc/be5000-uart-recover.py <port> --console` and power the router off and on: the script interrupts the autoboot and then works as a terminal, so type the commands below into it; Ctrl-C quits it. During a recovery the same happens with `--stop-autoboot`.
 
 ## Calibration from the U-Boot console
 

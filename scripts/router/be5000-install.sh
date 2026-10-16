@@ -182,11 +182,11 @@ cmd_check() {
 	fi
 }
 
-write_verify() { # mtd_index image_file
-	mtd write "$2" "/dev/mtd$1" || die "mtd write failed - do NOT reboot, re-run or restore from /tmp backup"
+write_verify() { # mtd_index image_file copy_of_old_content
+	mtd write "$2" "/dev/mtd$1" || die "mtd write failed on mtd$1 - do NOT reboot. Run this command again; to put the old content back: mtd write $3 /dev/mtd$1"
 	sz=$(wc -c < "$2")
 	dd if=/dev/mtd$1 of=/tmp/.be5000_rb bs=4096 count=$((sz / 4096)) 2>/dev/null
-	[ "$(hash_of "$2")" = "$(hash_of /tmp/.be5000_rb)" ] || { rm -f /tmp/.be5000_rb; die "read-back mismatch on mtd$1"; }
+	[ "$(hash_of "$2")" = "$(hash_of /tmp/.be5000_rb)" ] || { rm -f /tmp/.be5000_rb; die "read-back mismatch on mtd$1 - do NOT reboot. Run this command again; to put the old content back: mtd write $3 /dev/mtd$1"; }
 	rm -f /tmp/.be5000_rb
 	info "mtd$1 written and verified ($(hash_of "$2"))"
 }
@@ -245,8 +245,16 @@ cmd_calibration() {
 	dd if=/dev/mtd$idx of=$part bs=4096 2>/dev/null
 	if [ "$(hash_of $part $rel $CAL_SIZE)" = "$(hash_of "$f")" ]; then info "calibration already in place"; rm -f $part; return 0; fi
 	writable "$flags" || { rm -f $part; die "mtd$idx '$2' is read-only in this kernel; see docs (READ-ONLY)"; }
-	is_erased $part $rel $CAL_SIZE || { rm -f $part; die "block 0xA0000 is not empty - stop and inspect it, never erase unknown data"; }
-	cp $part /tmp/be5000-mtd$idx-before-calibration.bin
+	before=/tmp/be5000-mtd$idx-before-calibration.bin
+	if [ -f $before ]; then
+		# A retry in the same boot after an interrupted write: start from the
+		# copy taken before the first attempt, the block may be half-written now.
+		info "retrying: using $before, saved before the first attempt"
+		cp $before $part
+	else
+		is_erased $part $rel $CAL_SIZE || { rm -f $part; die "block 0xA0000 is not empty - stop and inspect it, never erase unknown data"; }
+		cp $part $before
+	fi
 	{
 		dd if=$part bs=4096 count=$((rel / 4096)) 2>/dev/null
 		cat "$f"
@@ -254,7 +262,7 @@ cmd_calibration() {
 	} > $part.new
 	[ "$(wc -c < $part.new)" -eq "$size" ] || die "internal size error"
 	info "writing calibration into mtd$idx '$2' at +0x$(printf %x $rel) (whole partition rewritten, other blocks unchanged)"
-	write_verify $idx $part.new
+	write_verify $idx $part.new $before
 	rm -f $part $part.new
 }
 
@@ -276,10 +284,19 @@ cmd_bootloader() {
 	# The replacement layout has a 0x7C000 "u-boot" partition; the image tail is zero padding.
 	dd if="$f" of=$img bs=4096 count=$(( (size < 524288 ? size : 524288) / 4096 )) 2>/dev/null
 	[ "$(hash_of "$f" 0 $((0x50000)))" = "$(hash_of $img 0 $((0x50000)))" ] || die "partition too small for image data"
-	dd if=/dev/mtd$idx of=/tmp/be5000-mtd$idx-old-bootloader.bin bs=4096 2>/dev/null
-	info "old bootloader saved to /tmp/be5000-mtd$idx-old-bootloader.bin - copy it to your PC now"
+	old=/tmp/be5000-mtd$idx-old-bootloader.bin
+	dd if=/dev/mtd$idx of=/tmp/.be5000_cur bs=4096 2>/dev/null
+	if [ "$(hash_of /tmp/.be5000_cur)" = "$(hash_of $img)" ]; then
+		rm -f /tmp/.be5000_cur $img
+		info "bootloader already written - nothing to do"
+		return 0
+	fi
+	# Keep the copy from the first attempt: on a retry the partition may be half-written.
+	[ -f $old ] || mv /tmp/.be5000_cur $old
+	rm -f /tmp/.be5000_cur
+	info "old bootloader saved to $old - copy it to your PC now"
 	info "writing bootloader into mtd$idx '$2' ($(wc -c < $img) bytes)"
-	write_verify $idx $img
+	write_verify $idx $img $old
 	rm -f $img
 	info "done. Reboot: U-Boot will not find OpenWrt yet and will start the web failsafe on http://192.168.1.1"
 }
