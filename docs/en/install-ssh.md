@@ -31,7 +31,7 @@
 | What | Why |
 |---|---|
 | root over SSH | all writes are done from the system installed on the router |
-| `ssh` and `curl` on the PC | `python3` only for UART recovery |
+| `ssh` and `curl` on the PC | `python3` only for UART recovery and `be5000-check-bootloader.py` |
 | cable PC ↔ LAN port | web failsafe works only over a cable |
 | USB-UART 3.3 V | insurance: if the bootloader write is interrupted, the router can be recovered only over UART |
 | [OpenWrt for BE5000](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` from the latest release ([about the build](../../firmware/openwrt/README.md)). `install.sh` downloads it into `firmware/openwrt/` and checks it against `SHA256SUMS` |
@@ -129,7 +129,7 @@ cat /sys/class/mtd/mtd0/writesize                  # page size
 sh scripts/pc/be5000-backup.sh $R
 ```
 
-The script downloads each `/dev/mtdN` to the PC and checks SHA-256 against the router. The `be5000-backup-<date>/` folder will contain `mtdN-<name>.bin`, `proc_mtd.txt`, `dmesg.txt` and `SHA256SUMS`.
+The script downloads each `/dev/mtdN` to the PC and checks SHA-256 against the router. The `be5000-backup-<date>/` folder will contain `mtdN-<name>.bin`, `proc_mtd.txt`, `sysfs_mtd.txt`, `dmesg.txt` and `SHA256SUMS`.
 
 > [!WARNING]
 > The backup contains your calibration, MAC addresses and serial number. Do not publish it. Without it you cannot return to the Xiaomi firmware.
@@ -201,7 +201,7 @@ Further updates are installed with the regular OpenWrt `sysupgrade`.
 | Where | What to do |
 |---|---|
 | OpenWrt from this repository, installed or in RAM | `art` is writable (tested), so step 3 works. `u-boot` is read-only: the bootloader is written over [UART](recovery-uart.md) |
-| OpenWrt iscle/xinyooo | `u-boot` and `art` are read-only there. Option without opening the case: `kmod-mtd-rw` and `insmod mtd-rw i_want_a_brick=1` (not tested). Reliable option: boot the initramfs from this repository over TFTP for the calibration, the bootloader over [UART](recovery-uart.md). To move to this image you do not need the bootloader step at all: `sysupgrade -n` is enough ([README](../../README.md#from-xinyooo-or-iscle-openwrt)) |
+| OpenWrt iscle/xinyooo | `u-boot` and `art` are read-only there. Option without opening the case: `kmod-mtd-rw` and `insmod mtd-rw i_want_a_brick=1` (not tested). Reliable option: boot the initramfs from the release over TFTP for the calibration, the bootloader over [UART](recovery-uart.md). To move to this image you do not need the bootloader step at all: `sysupgrade -n` is enough ([README](../../README.md#from-xinyooo-or-iscle-openwrt)) |
 | Xiaomi stock firmware | the bootloader and calibration partitions are writable on stock (tested), so this case does not occur. If they still show `READ-ONLY`, use [UART](recovery-uart.md), then step 5 of this guide |
 
 ## If something goes wrong

@@ -118,7 +118,7 @@ Without calibration, `dmesg` shows `mt7996e … eeprom load fail, use default bi
 
 U-Boot reads the first `fitsize = 0x500000` bytes of the partition and runs `bootm`. The web failsafe writes the uploaded file to the `firmware` partition as is.
 
-Settings are not in `firmware` but in a separate `ubi` partition (`0x18C0000`, 40 MiB), volume `rootfs_data` (UBIFS). JFFS2 does not work on W25N01KV: it programs page 0 of a block twice (cleanmarker in OOB, then data), and the chip's on-die ECC corrupts such a page ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)).
+Settings are not in `firmware` but in a separate `ubi` partition (`0x18C0000`, 40 MiB), volume `rootfs_data` (UBIFS); `sysupgrade` writes the FIT into `firmware`, recreates `rootfs_data` and saves the kept settings there. JFFS2 does not work on W25N01KV: it programs page 0 of a block twice (cleanmarker in OOB, then data), and the chip's on-die ECC corrupts such a page ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)).
 
 ## What this build changes
 

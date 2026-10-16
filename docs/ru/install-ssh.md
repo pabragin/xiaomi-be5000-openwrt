@@ -31,7 +31,7 @@
 | Что | Зачем |
 |---|---|
 | root по SSH | все записи идут из системы, которая стоит на роутере |
-| `ssh` и `curl` на ПК | `python3` только для восстановления по UART |
+| `ssh` и `curl` на ПК | `python3` только для восстановления по UART и `be5000-check-bootloader.py` |
 | кабель ПК ↔ LAN-порт | веб-failsafe работает только по проводу |
 | USB-UART 3.3 В | страховка: если запись загрузчика оборвётся, роутер поднимается только по UART |
 | [OpenWrt для BE5000](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` из последнего релиза ([описание сборки](../../firmware/openwrt/README.md)). `install.sh` сам скачивает его в `firmware/openwrt/` и сверяет с `SHA256SUMS` |
@@ -76,7 +76,7 @@ ssh $R sh /tmp/be5000-install.sh check
 | Строка | Что смотреть |
 |---|---|
 | `Detected flash layout` | `stock` — заводская разметка, `replacement` — разметка xinyooo/iscle, `unknown` — остановитесь и откройте issue |
-| `Result` и `SUPPORTED` | чип должен быть в [списке BL2](../en/technical.md#supported-nand-chips). При `NOT SUPPORTED` остановитесь; при `NOT IDENTIFIED` прочитайте маркировку на микросхеме |
+| `Result` и `SUPPORTED` | чип должен быть в [списке BL2](../en/technical.md#supported-nand-chips) (англ.). При `NOT SUPPORTED` остановитесь; при `NOT IDENTIFIED` прочитайте маркировку на микросхеме |
 | `bootloader partition … READ-ONLY` | шаг 4 из этой системы не выполнить, см. [READ-ONLY](#если-раздел-read-only) |
 | `calibration block … has data` | блок `0xA0000` занят чем-то неизвестным. Остановитесь: скрипт не будет его стирать |
 | `Factory EEPROM header: 9279` | (только сток) калибровка на месте, её можно переносить |
@@ -114,7 +114,7 @@ cat /sys/class/mtd/mtd0/writesize                  # размер страниц
 |---|---|---|---|
 | Winbond, страница 2048, **OOB 96** или ID `EF AE 21` | W25N01KV | ✅ | ❌ PANIC |
 | Winbond, страница 2048, **OOB 64** или ID `EF AA 21` | W25N01GV | ✅ | ✅ |
-| ESMT, OOB 64 | F50L1G41LB / EM73… | ✅ если модель есть в [списке](../en/technical.md#supported-nand-chips) | ✅ если модель есть в списке |
+| ESMT, OOB 64 | F50L1G41LB / EM73… | ✅ если модель есть в [списке](../en/technical.md#supported-nand-chips) (англ.) | ✅ если модель есть в списке |
 | не определяется | — | прочитайте маркировку на 8-ногой микросхеме рядом с SoC | — |
 
 > [!NOTE]
@@ -129,7 +129,7 @@ cat /sys/class/mtd/mtd0/writesize                  # размер страниц
 sh scripts/pc/be5000-backup.sh $R
 ```
 
-Скрипт качает каждый `/dev/mtdN` на ПК и сверяет SHA-256 с роутером. В папке `be5000-backup-<дата>/` будут `mtdN-<имя>.bin`, `proc_mtd.txt`, `dmesg.txt` и `SHA256SUMS`.
+Скрипт качает каждый `/dev/mtdN` на ПК и сверяет SHA-256 с роутером. В папке `be5000-backup-<дата>/` будут `mtdN-<имя>.bin`, `proc_mtd.txt`, `sysfs_mtd.txt`, `dmesg.txt` и `SHA256SUMS`.
 
 > [!WARNING]
 > В бэкапе ваша калибровка, MAC-адреса и серийный номер. Не публикуйте его. Без него прошивку Xiaomi не вернуть.
@@ -201,7 +201,7 @@ Wi-Fi по умолчанию выключен. В LuCI (`http://192.168.1.1`) �
 | Где | Что делать |
 |---|---|
 | OpenWrt из этого репозитория, установленный или в RAM | `art` доступен на запись (проверено), шаг 3 работает. `u-boot` только для чтения: загрузчик пишется через [UART](recovery-uart.md) |
-| OpenWrt iscle/xinyooo | там `u-boot` и `art` только для чтения. Вариант без разборки: `kmod-mtd-rw` и `insmod mtd-rw i_want_a_brick=1` (не проверялся). Надёжный вариант: для калибровки загрузить initramfs из этого репозитория по TFTP, загрузчик через [UART](recovery-uart.md). Для перехода на этот образ шаг с загрузчиком вообще не нужен: достаточно `sysupgrade -n` ([README](../../README.ru.md#с-openwrt-xinyooo-или-iscle)) |
+| OpenWrt iscle/xinyooo | там `u-boot` и `art` только для чтения. Вариант без разборки: `kmod-mtd-rw` и `insmod mtd-rw i_want_a_brick=1` (не проверялся). Надёжный вариант: для калибровки загрузить initramfs из релиза по TFTP, загрузчик через [UART](recovery-uart.md). Для перехода на этот образ шаг с загрузчиком вообще не нужен: достаточно `sysupgrade -n` ([README](../../README.ru.md#с-openwrt-xinyooo-или-iscle)) |
 | Сток Xiaomi | разделы загрузчика и калибровки на стоке доступны на запись (проверено), этот случай не возникает. Если всё же `READ-ONLY` — [UART](recovery-uart.md), затем шаг 5 этой инструкции |
 
 ## Если что-то пошло не так

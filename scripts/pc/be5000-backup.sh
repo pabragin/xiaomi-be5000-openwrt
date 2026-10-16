@@ -20,8 +20,8 @@ for dev in $(sed 1d "$OUT/proc_mtd.txt" | cut -d: -f1); do
 	echo ">>> $dev ($name)"
 	$SSH "$HOST" "cat /dev/$dev" > "$OUT/$dev-$name.bin"
 	remote=$($SSH "$HOST" "sha256sum /dev/$dev" | cut -d' ' -f1)
-	local=$(sha256 "$OUT/$dev-$name.bin")
-	[ "$remote" = "$local" ] || { echo "SHA-256 mismatch for $dev" >&2; exit 1; }
-	echo "$local  $dev-$name.bin" >> "$OUT/SHA256SUMS"
+	have=$(sha256 "$OUT/$dev-$name.bin")
+	[ "$remote" = "$have" ] || { echo "SHA-256 mismatch for $dev" >&2; exit 1; }
+	echo "$have  $dev-$name.bin" >> "$OUT/SHA256SUMS"
 done
 echo "Backup complete and verified: $OUT"

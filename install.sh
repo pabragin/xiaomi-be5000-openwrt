@@ -16,6 +16,8 @@ CTL=${TMPDIR:-/tmp}/be5000-ssh-$$
 export SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ControlMaster=auto -o ControlPath=$CTL -o ControlPersist=600"
 SSH="ssh $SSH_OPTS"
 
+for t in ssh curl; do command -v $t >/dev/null 2>&1 || { echo "STOP: $t is not installed on this computer" >&2; exit 1; }; done
+
 step() { printf '\n=== %s\n' "$*"; }
 fail() { printf '\nSTOP: %s\n' "$*" >&2; exit 1; }
 upload() { $SSH "$R" "cat > /tmp/$(basename "$1")" < "$1"; }   # no scp: works without sftp
@@ -24,14 +26,17 @@ trap 'ssh $SSH_OPTS -O exit "$R" 2>/dev/null || true' EXIT
 
 step "1/6 OpenWrt image from the latest release"
 mkdir -p firmware/openwrt
-[ -f "firmware/openwrt/$IMG" ] || curl -fL --progress-bar -o "firmware/openwrt/$IMG" "$REL/$IMG" \
-	|| fail "download failed. Get $IMG from https://github.com/pabragin/xiaomi-be5000-openwrt/releases into firmware/openwrt/ and run again"
-if curl -fsL -o firmware/openwrt/SHA256SUMS "$REL/SHA256SUMS"; then
-	want=$(grep " $IMG\$" firmware/openwrt/SHA256SUMS | cut -d' ' -f1)
-	[ "$(sha256 "firmware/openwrt/$IMG")" = "$want" ] || fail "firmware/openwrt/$IMG does not match SHA256SUMS: delete it and run again"
-	echo "firmware/openwrt/$IMG: checksum OK"
+curl -fsL -o firmware/openwrt/SHA256SUMS "$REL/SHA256SUMS" || fail "could not download SHA256SUMS from the release; check the internet connection and run again"
+want=$(grep " $IMG\$" firmware/openwrt/SHA256SUMS | cut -d' ' -f1)
+[ -n "$want" ] || fail "$IMG is not listed in the release SHA256SUMS; open an issue"
+if [ -f "firmware/openwrt/$IMG" ] && [ "$(sha256 "firmware/openwrt/$IMG")" = "$want" ]; then
+	echo "firmware/openwrt/$IMG: already downloaded, checksum OK"
 else
-	echo "could not download SHA256SUMS, skipping the checksum"
+	rm -f "firmware/openwrt/$IMG"
+	curl -fL --progress-bar -o "firmware/openwrt/$IMG.part" "$REL/$IMG" || fail "download failed; check the internet connection and run again"
+	[ "$(sha256 "firmware/openwrt/$IMG.part")" = "$want" ] || { rm -f "firmware/openwrt/$IMG.part"; fail "the downloaded image does not match SHA256SUMS; run again"; }
+	mv "firmware/openwrt/$IMG.part" "firmware/openwrt/$IMG"
+	echo "firmware/openwrt/$IMG: downloaded, checksum OK"
 fi
 
 step "2/6 Connecting to $R (enter the router password once)"
@@ -42,11 +47,13 @@ upload "$BL"
 step "3/6 Checking the flash chip and the partitions"
 mkdir -p "$OUT"
 C=$OUT/be5000-check.txt
-$SSH "$R" sh /tmp/be5000-install.sh check | tee "$C"
+$SSH "$R" sh /tmp/be5000-install.sh check > "$C" || { cat "$C"; fail "the check failed on the router, see above"; }
+cat "$C"
+[ -s "$C" ] || fail "the check printed nothing; run it by hand: ssh $R sh /tmp/be5000-install.sh check"
 if grep -q 'NOT SUPPORTED' "$C"; then
 	fail "the bootloader does not support your flash chip; writing it would brick the router. Open an issue with $C"
 fi
-if ! grep -q ' SUPPORTED:' "$C"; then
+if ! grep -q '^  SUPPORTED:' "$C"; then
 	[ "${BE5000_NAND_OK:-}" = 1 ] || fail "the flash chip was not identified. Read the marking on the chip, check it with scripts/pc/be5000-check-bootloader.py (see docs/en/install-ssh.md), then run: BE5000_NAND_OK=1 sh install.sh $R"
 fi
 if grep -q 'Detected flash layout: unknown' "$C"; then
@@ -65,7 +72,7 @@ sh scripts/pc/be5000-backup.sh "$R" "$OUT" || fail "backup verification failed, 
 echo
 echo "Next step writes to flash. Backup: $(pwd)/$OUT - keep it somewhere safe."
 printf 'Type YES and press Enter to continue: '
-read -r ans
+read -r ans || ans=
 [ "$ans" = YES ] || fail "cancelled, nothing was written"
 
 step "5/6 Wi-Fi calibration"

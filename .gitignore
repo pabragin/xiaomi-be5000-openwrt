@@ -1,6 +1,7 @@
 # Personal device data and downloaded images must never be committed
 be5000-backup-*/
 *.bin
+*.part
 !firmware/bootloader/*.bin
 firmware/openwrt/SHA256SUMS
 *.log

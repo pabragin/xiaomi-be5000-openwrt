@@ -25,7 +25,7 @@ Everything below is tested on a BE5000 running this firmware.
 
 | What | How it works |
 |---|---|
-| **System** | OpenWrt SNAPSHOT `r36539+836`, **Linux 6.18.55** kernel, mt76 Wi-Fi driver 2026-10-08 |
+| **System** | OpenWrt SNAPSHOT `r36539+836`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
 | **5 GHz Wi-Fi** | 160 MHz, Wi-Fi 6/7. A 2x2 MacBook: **1757 Mbit/s** download, **1643 Mbit/s** upload ([test](docs/en/technical.md#speed)) |
 | **2.4 GHz Wi-Fi** | works, 20/40 MHz |
 | **Hardware offload** | Wi-Fi ↔ wired traffic goes through the PPE and the NPU; the CPU is ~10% busy at full speed |
@@ -45,9 +45,6 @@ Everything below is tested on a BE5000 running this firmware.
 - **A router with root SSH access** on the Xiaomi stock firmware (or X-WRT). Getting root on the stock firmware is not covered here: see the [OpenWrt forum thread](https://forum.openwrt.org/t/xiaomi-be5000-wifi7-router/199438) and [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher). Already on OpenWrt xinyooo/iscle? You only need [`sysupgrade -n`](#from-xinyooo-or-iscle-openwrt).
 - **A computer** with macOS or Linux (on Windows use WSL): `ssh` and `curl`, and **a network cable** to the router.
 
-> [!NOTE]
-> Settings are kept in UBI, not JFFS2: on W25N01KV flash JFFS2 corrupts writes, and after a reboot the router comes up with no network ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)). Moving from iscle/xinyooo OpenWrt to this image does not keep settings (`sysupgrade -n`).
-
 ## 3. Install
 
 > [!WARNING]
@@ -60,15 +57,14 @@ git clone https://github.com/pabragin/xiaomi-be5000-openwrt && cd xiaomi-be5000-
 sh install.sh root@192.168.31.1        # 192.168.31.1 is the Xiaomi stock address; usually 192.168.1.1 on OpenWrt
 ```
 
-The script asks for the router password once and then:
-1. downloads the OpenWrt image from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) and checks its checksum;
-2. checks the flash chip and the partitions (if the bootloader does not support the chip, it stops before writing anything);
-3. saves a full flash backup to `be5000-backup-<date>` (keep it: without it you cannot go back to Xiaomi firmware);
-4. asks for `YES`, moves the Wi-Fi calibration and writes the bootloader;
-5. reboots the router.
+The script downloads the OpenWrt image from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) and verifies it against the release checksums. Then it asks for the router password once and:
+1. checks the flash chip and the partitions (if the bootloader does not support the chip, it stops before writing anything);
+2. saves a full flash backup to `be5000-backup-<date>` (keep it: without it you cannot go back to Xiaomi firmware);
+3. asks for `YES`, moves the Wi-Fi calibration and writes the bootloader;
+4. reboots the router.
 
 **Step 2. Firmware in the browser.**
-1. Set the computer's address manually: IP `192.168.1.10`, mask `255.255.255.0`. On macOS: System Settings → Network → (adapter) → Details → TCP/IP → Configure IPv4: Manually.
+1. Set the computer's address manually: IP `192.168.1.10`, mask `255.255.255.0`. On macOS: System Settings → Network → (adapter) → Details → TCP/IP → Configure IPv4: Manually. On WSL set the address in Windows; in the browser the file is under `\\wsl$\<distro>\home\…`.
 2. Open `http://192.168.1.1`, choose `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` downloaded in step 1 (the installer prints the full path), click **Upload**, then **Proceed**.
 3. Wait 5 minutes and do not cut the power. The router reboots into OpenWrt by itself.
 
@@ -77,11 +73,11 @@ The script asks for the router password once and then:
 > [!CAUTION]
 > If the power is lost while the bootloader is being written, or the router does not show up on the network after step 1, only UART can bring it back (section 4).
 
+Step-by-step install, the manual flash chip check and the `READ-ONLY` case: [docs/en/install-ssh.md](docs/en/install-ssh.md).
+
 ### From xinyooo or iscle OpenWrt
 
-Your bootloader already boots your flash chip and the calibration is already at `0xA0000`, so `install.sh` is not needed (and could not write the bootloader: `u-boot` is read-only on those images). Download the image from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest), copy it to the router and run `sysupgrade -n /tmp/<file>`. Settings are not kept: the images store them differently.
-
-Step-by-step install, the manual flash chip check and the `READ-ONLY` case: [docs/en/install-ssh.md](docs/en/install-ssh.md).
+Your bootloader already boots your flash chip and the calibration is already at `0xA0000`, so `install.sh` is not needed (and could not write the bootloader: `u-boot` is read-only on those images). Download the image from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest), copy it to the router and run `sysupgrade -n /tmp/<file>`. Settings are not kept: this image stores them in UBI, not JFFS2, because on W25N01KV flash JFFS2 corrupts writes and the router comes up with no network after a reboot ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)).
 
 ## 4. If the bootloader is broken: UART
 
@@ -108,7 +104,6 @@ Details, with photos and troubleshooting: [docs/en/recovery-uart.md](docs/en/rec
 | [`install.sh`](install.sh) | one-command install: check, backup, calibration, bootloader | runs on the computer |
 | [`scripts/router/be5000-install.sh`](scripts/router/be5000-install.sh) | check, write calibration and bootloader with read-back verification | runs on the router |
 | [`scripts/pc/`](scripts/pc/) | backup, UART recovery, bootloader check | runs on the computer |
-| [`scripts/maintainer/release.sh`](scripts/maintainer/release.sh) | publishes a release and updates the version strings in the docs | maintainer |
 
 Checksums and origin of the binaries: [firmware/bootloader/README.md](firmware/bootloader/README.md), [firmware/openwrt/README.md](firmware/openwrt/README.md).
 

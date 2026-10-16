@@ -84,7 +84,7 @@ U-Boot immediately tries to boot OpenWrt from the `firmware` partition:
 | OpenWrt (iscle/xinyooo) | boots as usual | nothing |
 | empty or Xiaomi stock firmware | web failsafe comes up at `http://192.168.1.1` | [install step 5](install-ssh.md#step-5-firmware-via-web-failsafe) |
 
-If the flash still has the factory flash layout, move the calibration **before** step 5: the firmware is written from `0xC0000` and overwrites the stock `Factory` partition. The simplest way: boot the OpenWrt initramfs from this repository over TFTP (section below) and run `be5000-install.sh calibration`; it finds the stock `Factory` data inside `firmware` and writes the block to `art`, which is writable in this build. Without the initramfs, use the U-Boot console (next section).
+If the flash still has the factory flash layout, move the calibration **before** step 5: the firmware is written from `0xC0000` and overwrites the stock `Factory` partition. The simplest way: boot the OpenWrt initramfs from the release over TFTP (section below) and run `be5000-install.sh calibration`; it finds the stock `Factory` data inside `firmware` and writes the block to `art`, which is writable in this build. Without the initramfs, use the U-Boot console (next section).
 
 To get to the U-Boot console, run the script with `--stop-autoboot`.
 
@@ -116,7 +116,7 @@ U-Boot> tftpboot 0x84000000 openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel
 U-Boot> bootm 0x84000000
 ```
 
-The initramfs file is in [`firmware/openwrt/`](../../firmware/openwrt/); put it into the TFTP server root on the PC (`192.168.1.10`).
+Download `openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin` from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) and put it into the TFTP server root on the PC (`192.168.1.10`).
 
 ## What the log shows
 

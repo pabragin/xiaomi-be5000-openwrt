@@ -1,6 +1,6 @@
 # OpenWrt images
 
-The images are not in git: download them from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) (`install.sh` does it). Build: OpenWrt `main` (`r36539+836-98bc30d154`, Linux 6.18.55) with [iscle](https://github.com/iscle/openwrt)'s BE5000 series and the fixes from this repository. Tested on the reference router (W25N01KV): web failsafe install, first boot, warm and cold reboots, `sysupgrade` with kept settings.
+The images are not in git: download them from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) (`install.sh` does it). Build: OpenWrt `main` (`r36539+836-98bc30d154`, Linux 6.18.55, mt76 2026-10-08) with [iscle](https://github.com/iscle/openwrt)'s BE5000 series and the fixes from this repository. Tested on the reference router (W25N01KV): web failsafe install, first boot, warm and cold reboots, `sysupgrade` with kept settings.
 
 | Release file | Use |
 |---|---|
@@ -14,4 +14,4 @@ What the build changes compared to iscle's, the flash layout, PCIe and the speed
 - **Requires** the bootloader from [`../bootloader/`](../bootloader/) (replacement flash layout, calibration at `0xA0000`). Not a Xiaomi stock web-upgrade image.
 - **Upgrading from an image with JFFS2 settings** (iscle, xinyooo): use `sysupgrade -n`. The old system would append the settings as JFFS2 inside `firmware`, where this image does not look.
 - **Defaults:** LAN `192.168.1.1`, DHCP server on, root without password, Wi-Fi disabled.
-- **Source and licence:** OpenWrt is GPL-2.0. Sources: branch [`be5000-main`](https://github.com/pabragin/openwrt/tree/be5000-main) of the OpenWrt fork (upstream `27f0f3ebd1` plus the series), also as a patch tarball with `diffconfig` in the [release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/tag/be5000-openwrt-20261016).
+- **Source and licence:** OpenWrt is GPL-2.0. Sources: branch [`be5000-main`](https://github.com/pabragin/openwrt/tree/be5000-main) of the OpenWrt fork (upstream `main` plus the BE5000 series), also as a patch tarball with `diffconfig` in the [release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/tag/be5000-openwrt-20261016).
