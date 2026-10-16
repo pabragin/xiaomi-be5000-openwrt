@@ -6,6 +6,7 @@
 > **TL;DR.** This repository shows how to install OpenWrt on the Xiaomi BE5000 with only root SSH access, and how to recover the router over UART if the bootloader is broken.
 > - **Main trap:** the bootloader from the xinyooo releases and the X-WRT preloader do not know the **Winbond W25N01KV** flash chip. With this chip the router crashes on every cold boot with `PANIC at PC : 0x810017a9`.
 > - **This repository has a bootloader that knows it:** [`be5000-bootloader-w25n01kv.bin`](firmware/bootloader/): BL2 with 57 NAND chips, U-Boot with autoboot and web recovery.
+> - **Wi-Fi speed:** 1757 Mbit/s download and 1643 Mbit/s upload through the BE5000 (OpenSpeedTest, a 2x2 160 MHz MacBook to a wired PC).
 > - **Tested on hardware:** BE5000 (AN7563PT, W25N01KV, 512 MB DDR3): SSH install from Xiaomi stock firmware, UART recovery, web failsafe install, cold boot, our own OpenWrt build with settings in UBI, Wi-Fi calibration built from the router's own Factory data.
 
 ## Contents
@@ -29,6 +30,8 @@
 | Settings | `ubi` partition at `0x18C0000`, 40 MiB, `rootfs_data` volume (UBIFS) |
 | Ports | `lan1`–`lan3` (1 Gbit, DSA) and `eth1` (2.5 Gbit), all in `br-lan` |
 | Wi-Fi | 2.4 + 5 GHz, off by default. A 2x2 160 MHz client in OpenSpeedTest: 1757 Mbit/s download, 1643 Mbit/s upload ([test](firmware/openwrt/README.md#speed)) |
+
+<img src="images/openspeedtest-be5000.png" alt="OpenSpeedTest through the BE5000: 1757 Mbit/s download, 1643 Mbit/s upload" width="320">
 
 ![Flash layout](images/flash-layout.en.svg)
 
