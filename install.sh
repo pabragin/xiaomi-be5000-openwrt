@@ -13,7 +13,7 @@ IMG=openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin
 REL=https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest/download
 OUT=be5000-backup-$(date +%Y%m%d-%H%M%S)
 CTL=${TMPDIR:-/tmp}/be5000-ssh-$$
-export SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ControlMaster=auto -o ControlPath=$CTL -o ControlPersist=600"
+export SSH_OPTS="-o ConnectTimeout=15 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ControlMaster=auto -o ControlPath=$CTL -o ControlPersist=600"
 SSH="ssh $SSH_OPTS"
 
 for t in ssh curl; do command -v $t >/dev/null 2>&1 || { echo "STOP: $t is not installed on this computer" >&2; exit 1; }; done
