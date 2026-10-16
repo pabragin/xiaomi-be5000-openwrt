@@ -215,13 +215,20 @@ cmd_calibration() {
 	f=${1:-}
 	if [ -z "$f" ]; then
 		set -- $(mtd_covering $FACTORY_OFF $FACTORY_SIZE)
-		[ $# -eq 5 ] && [ "$3" -eq $FACTORY_OFF ] || {
+		if [ $# -eq 5 ] && [ "$3" -eq $FACTORY_OFF ]; then
+			dd if=/dev/mtd$1 of=/tmp/be5000-Factory.bin bs=4096 2>/dev/null
+		else
 			info "no stock Factory partition at 0x180000"
+			fac=$*
 			set -- $(mtd_covering $CAL_OFF $CAL_SIZE)
 			[ $# -eq 5 ] && [ "$(hex2 /dev/mtd$1 2 $((CAL_OFF - $3)))" = "9279" ] && { info "calibration already in place at 0xA0000"; return 0; }
-			die "pass your Factory backup: $0 calibration /tmp/Factory.bin"
-		}
-		dd if=/dev/mtd$1 of=/tmp/be5000-Factory.bin bs=4096 2>/dev/null
+			# OpenWrt in RAM on a stock flash: Factory data still sits at 0x180000 inside another partition
+			set -- $fac
+			[ $# -eq 5 ] && [ "$(hex2 /dev/mtd$1 2 $((FACTORY_OFF - $3)))" = "9279" ] \
+				|| die "pass your Factory backup: $0 calibration /tmp/Factory.bin"
+			info "stock Factory data found in mtd$1 '$2' at +0x$(printf %x $((FACTORY_OFF - $3)))"
+			dd if=/dev/mtd$1 of=/tmp/be5000-Factory.bin bs=4096 skip=$(((FACTORY_OFF - $3) / 4096)) count=$((FACTORY_SIZE / 4096)) 2>/dev/null
+		fi
 		f=/tmp/be5000-Factory.bin
 	fi
 	[ -f "$f" ] || die "file not found: $f"

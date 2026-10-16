@@ -43,7 +43,8 @@
 | `0x180000` | **Factory** (EEPROM `92 79` + MAC) | firmware: rootfs | |
 | `0x600000` | kernel (сток) | ↑ | |
 | `0xC00000` | ubi (сток) | ↑ | |
-| `0x40C0000` | ↑ | конец firmware | |
+| `0x18C0000` | ↑ | ubi: `rootfs_data` (настройки) | `0x2800000` |
+| `0x40C0000` | ↑ | конец ubi | |
 
 Логические адреса считаются через Airoha BMT: `BMT v1 at block 1023`, `BBT v1 at block 943`, 943 рабочих блока.
 

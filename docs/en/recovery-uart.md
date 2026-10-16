@@ -13,8 +13,9 @@
 4. [Where GPIO0 is](#where-gpio0-is)
 5. [Recovery](#recovery)
 6. [After recovery](#after-recovery)
-7. [What the log shows](#what-the-log-shows)
-8. [Troubleshooting](#troubleshooting)
+7. [Calibration from the U-Boot console](#calibration-from-the-u-boot-console)
+8. [What the log shows](#what-the-log-shows)
+9. [Troubleshooting](#troubleshooting)
 
 ## Done when
 
@@ -83,7 +84,31 @@ U-Boot immediately tries to boot OpenWrt from the `firmware` partition:
 | OpenWrt (iscle/xinyooo) | boots as usual | nothing |
 | empty or Xiaomi stock firmware | web failsafe comes up at `http://192.168.1.1` | [install step 5](install-ssh.md#step-5-firmware-via-web-failsafe) |
 
-If the flash still has the factory flash layout, move the calibration. Boot initramfs and run steps 2–3 of the [install guide](install-ssh.md) from OpenWrt in RAM:
+If the flash still has the factory flash layout, move the calibration **before** step 5: the firmware is written from `0xC0000` and overwrites the stock `Factory` partition. In OpenWrt, including the initramfs, the `art` partition is read-only, so do it from the U-Boot console (next section).
+
+To get to the U-Boot console, run the script with `--stop-autoboot`.
+
+## Calibration from the U-Boot console
+
+> [!WARNING]
+> Derived from the `mtd` command of the bundled U-Boot; not yet tested on hardware. Every step except `erase` and `write` only reads.
+
+The U-Boot partition table also marks `art` read-only, so the commands address the whole chip (`spi-nand0`) by absolute offset. The first 128 KiB block of the stock `Factory` partition is the MT7992 EEPROM followed by `FF`, which is exactly the calibration block:
+
+```text
+U-Boot> mtd dump spi-nand0 0x180000 0x10      # must start with 92 79: the MT7992 EEPROM
+U-Boot> mtd dump spi-nand0 0xa0000 0x10       # must be all ff: the block is empty
+U-Boot> mtd read spi-nand0 0x84000000 0x180000 0x20000
+U-Boot> mtd erase spi-nand0 0xa0000 0x20000
+U-Boot> mtd write spi-nand0 0x84000000 0xa0000 0x20000
+U-Boot> mtd dump spi-nand0 0xa0000 0x10       # 92 79 ... again
+```
+
+If the first dump does not start with `92 79`, stop: `Factory` is already overwritten, and the calibration has to come from your backup (`tftpboot 0x84000000 calibration.bin`, then the same `erase` and `write`). If the second dump is not all `ff`, stop as well and do not erase unknown data.
+
+Then reboot (`reset`) and continue with [install step 5](install-ssh.md#step-5-firmware-via-web-failsafe).
+
+OpenWrt in RAM, for a backup over SSH ([install step 2](install-ssh.md#step-2-backup)) or for tests:
 
 ```text
 U-Boot> setenv serverip 192.168.1.10
@@ -92,8 +117,6 @@ U-Boot> bootm 0x84000000
 ```
 
 The initramfs file is in [`firmware/openwrt/`](../../firmware/openwrt/); put it into the TFTP server root on the PC (`192.168.1.10`).
-
-To get to the U-Boot console, run the script with `--stop-autoboot`.
 
 ## What the log shows
 

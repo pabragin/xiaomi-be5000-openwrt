@@ -43,7 +43,8 @@
 | `0x180000` | **Factory** (EEPROM `92 79` + MAC) | firmware: rootfs | |
 | `0x600000` | kernel (stock) | ↑ | |
 | `0xC00000` | ubi (stock) | ↑ | |
-| `0x40C0000` | ↑ | end of firmware | |
+| `0x18C0000` | ↑ | ubi: `rootfs_data` (settings) | `0x2800000` |
+| `0x40C0000` | ↑ | end of ubi | |
 
 Logical addresses are mapped through Airoha BMT: `BMT v1 at block 1023`, `BBT v1 at block 943`, 943 usable blocks.
 

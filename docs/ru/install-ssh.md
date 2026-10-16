@@ -58,10 +58,19 @@ ssh $R sh /tmp/be5000-install.sh check
   mtd0  u-boot         off=0x00000000 size=0x0007c000 RO
   mtd1  u-boot-env     off=0x0007c000 size=0x00004000 RO
   mtd2  art            off=0x00080000 size=0x00040000 RO
-  mtd3  firmware       off=0x000c0000 size=0x04000000 rw
+  mtd3  firmware       off=0x000c0000 size=0x01800000 rw
   mtd4  kernel         off=0x00000000 size=0x003c0000 rw (inside firmware)
->>> NAND chip from kernel log:
-  spi-nand spi0.0: Winbond SPI NAND was found.
+  mtd5  rootfs         off=0x003c0000 size=0x01440000 rw (inside firmware)
+  mtd6  rootfs_data    off=0x00ac0000 size=0x00d40000 rw (inside firmware)
+  mtd7  ubi            off=0x018c0000 size=0x02800000 rw
+>>> Kernel log:
+  [    1.297809] spi-nand spi0.0: Winbond SPI NAND was found.
+  [    1.303181] spi-nand spi0.0: 128 MiB, block size: 128 KiB, page size: 2048, OOB size: 96
+  [    3.287615] mtdblock: MTD device 'rootfs' is NAND, please consider using UBI block devices instead.
+>>> MTD geometry: page=2048 oob=96 (sysfs) oob=96 (kernel log) erase=131072
+>>> Result: vendor=Winbond chip=W25N01KV
+  SUPPORTED: the BL2 of be5000-bootloader-w25n01kv.bin knows W25N01KV
+  Note: xinyooo v2026.05/06 bootloaders and the X-WRT preloader do NOT know W25N01KV
 >>> Detected flash layout: replacement
   bootloader partition: mtd0 'u-boot' size=0x7c000 READ-ONLY
   calibration block 0xA0000: mtd2 'art' +0x20000, already contains MT7992 calibration, READ-ONLY
@@ -70,7 +79,7 @@ ssh $R sh /tmp/be5000-install.sh check
 | Строка | Что смотреть |
 |---|---|
 | `Detected flash layout` | `stock` — заводская разметка, `replacement` — разметка xinyooo/iscle, `unknown` — остановитесь и откройте issue |
-| `NAND chip` | чип должен быть в [списке BL2](technical.md#поддерживаемые-чипы-nand). Если ядро его не печатает, прочитайте маркировку на микросхеме |
+| `Result` и `SUPPORTED` | чип должен быть в [списке BL2](technical.md#поддерживаемые-чипы-nand). При `NOT SUPPORTED` остановитесь; при `NOT IDENTIFIED` прочитайте маркировку на микросхеме |
 | `bootloader partition … READ-ONLY` | шаг 4 из этой системы не выполнить, см. [READ-ONLY](#если-раздел-read-only) |
 | `calibration block … has data` | блок `0xA0000` занят чем-то неизвестным. Остановитесь: скрипт не будет его стирать |
 | `Factory EEPROM header: 9279` | (только сток) калибровка на месте, её можно переносить |
@@ -85,11 +94,13 @@ ssh $R sh /tmp/be5000-install.sh nand
 
 ```
 >>> Kernel log:
-  spi-nand spi0.0: Winbond SPI NAND was found.
-  spi-nand spi0.0: 128 MiB, block size: 128 KiB, page size: 2048, OOB size: 96
+  [    1.297809] spi-nand spi0.0: Winbond SPI NAND was found.
+  [    1.303181] spi-nand spi0.0: 128 MiB, block size: 128 KiB, page size: 2048, OOB size: 96
+  [    3.287615] mtdblock: MTD device 'rootfs' is NAND, please consider using UBI block devices instead.
 >>> MTD geometry: page=2048 oob=96 (sysfs) oob=96 (kernel log) erase=131072
 >>> Result: vendor=Winbond chip=W25N01KV
   SUPPORTED: the BL2 of be5000-bootloader-w25n01kv.bin knows W25N01KV
+  Note: xinyooo v2026.05/06 bootloaders and the X-WRT preloader do NOT know W25N01KV
 ```
 
 Команда `bootloader` запускает ту же проверку сама и **не пишет**, если чип не подходит. Если чип не удалось определить, она попросит сверить маркировку и перезапустить с `BE5000_NAND_OK=1`.
@@ -149,6 +160,7 @@ ssh $R sh /tmp/be5000-install.sh calibration
 | Сток Xiaomi, Factory на месте | `be5000-install.sh calibration` |
 | Калибровка уже в `0xA0000` (OpenWrt xinyooo/iscle) | та же команда ответит `calibration already in place` |
 | Factory уже затёрт, есть бэкап | `scp -O Factory.bin $R:/tmp/` и `be5000-install.sh calibration /tmp/Factory.bin` (4 МБ дамп или готовый блок 128 КБ) |
+| OpenWrt в RAM (initramfs) на заводском флеше | команда находит заводские данные `Factory` внутри `firmware`, но `art` в этой сборке только для чтения: запишите блок из [консоли U-Boot](recovery-uart.md#калибровка-из-консоли-u-boot) |
 
 На ПК то же самое делает `python3 scripts/pc/be5000-calibration.py Factory.bin calibration.bin`.
 
@@ -193,7 +205,7 @@ Wi-Fi по умолчанию выключен. В LuCI (`http://192.168.1.1`) �
 
 | Где | Что делать |
 |---|---|
-| OpenWrt xinyooo/iscle (`replacement`) | там `u-boot` и `art` всегда только для чтения. Вариант без разборки: `kmod-mtd-rw` и `insmod mtd-rw i_want_a_brick=1` (на этой сборке не проверялся). Надёжный вариант: [UART](recovery-uart.md) |
+| OpenWrt (`replacement`), включая эту сборку и её initramfs | там `u-boot` и `art` только для чтения. Вариант без разборки: `kmod-mtd-rw` и `insmod mtd-rw i_want_a_brick=1` (на этой сборке не проверялся). Надёжный вариант: загрузчик через [UART](recovery-uart.md), калибровка из [консоли U-Boot](recovery-uart.md#калибровка-из-консоли-u-boot) |
 | Сток Xiaomi | разделы загрузчика и калибровки на стоке доступны на запись (проверено), этот случай не возникает. Если всё же `READ-ONLY` — [UART](recovery-uart.md), затем шаг 5 этой инструкции |
 
 ## Если что-то пошло не так
@@ -203,4 +215,4 @@ Wi-Fi по умолчанию выключен. В LuCI (`http://192.168.1.1`) �
 | После шага 4 роутер не появляется в сети, светодиод не меняется | загрузчик не стартует | [UART](recovery-uart.md) |
 | `192.168.1.1` не открывается, но роутер жив | у ПК нет адреса в `192.168.1.0/24`, или кабель в порту 2.5G | задайте ПК `192.168.1.10/24`, используйте гигабитный LAN-порт |
 | failsafe пишет `not a valid firmware image for this board` | загружен не тот файл | нужен `squashfs-sysupgrade.bin` для `xiaomi_be5000` |
-| Wi-Fi со случайным MAC, в `dmesg` `eeprom load fail` | калибровки нет в `0xA0000` | повторите шаг 3 |
+| Wi-Fi со случайным MAC, в `dmesg` `eeprom load fail` | калибровки нет в `0xA0000` | в OpenWrt `art` только для чтения, запишите её из [консоли U-Boot](recovery-uart.md#калибровка-из-консоли-u-boot) (UART) |
