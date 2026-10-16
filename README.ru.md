@@ -4,8 +4,7 @@
 
 > [!IMPORTANT]
 > **Коротко.** Репозиторий описывает, как поставить OpenWrt на Xiaomi BE5000, имея только root-доступ по SSH, и как поднять роутер по UART, если загрузчик сломался.
-> - **Главная ловушка:** загрузчик из релизов xinyooo и preloader X-WRT не знают флеш-память **Winbond W25N01KV**. С ней роутер падает на каждом холодном старте с `PANIC at PC : 0x810017a9`.
-> - **Здесь лежит загрузчик, который её знает:** [`be5000-bootloader-w25n01kv.bin`](firmware/bootloader/), 57 чипов NAND, U-Boot с автозагрузкой и веб-восстановлением.
+> - **Три шага:** одна команда на компьютере, один файл через браузер, настройка Wi-Fi. Установщик сначала проверяет чип флеша: загрузчик здесь знает 57 чипов NAND, включая **Winbond W25N01KV**, на котором загрузчики xinyooo и X-WRT падают (`PANIC at PC : 0x810017a9`).
 > - **Скорость Wi-Fi:** 1757 Мбит/с скачивание и 1643 Мбит/с отдача через BE5000 (OpenSpeedTest, MacBook 2x2 на 160 МГц до ПК в проводной сети).
 > - **Проверено на железе:** BE5000 (AN7563PT, W25N01KV, 512 МБ DDR3): установка из стоковой прошивки Xiaomi по SSH, восстановление по UART, установка через веб-failsafe, холодный старт, своя сборка OpenWrt с настройками в UBI, своя калибровка Wi-Fi.
 
@@ -16,7 +15,7 @@
 3. [Установка](#3-установка) → подробно: [docs/ru/install-ssh.md](docs/ru/install-ssh.md)
 4. [Если загрузчик сломался: UART](#4-если-загрузчик-сломался-uart) → подробно: [docs/ru/recovery-uart.md](docs/ru/recovery-uart.md)
 5. [Файлы](#5-файлы)
-6. [Как это устроено](#6-как-это-устроено) → подробно: [docs/ru/technical.md](docs/ru/technical.md)
+6. [Как это устроено](#6-как-это-устроено) → подробно: [docs/en/technical.md](docs/en/technical.md)
 7. [Источники и благодарности](#7-источники-и-благодарности)
 8. [Обратная связь](#8-обратная-связь)
 
@@ -27,7 +26,7 @@
 | Что | Как работает |
 |---|---|
 | **Система** | OpenWrt SNAPSHOT `r36539+836`, ядро **Linux 6.18.55**, драйвер Wi-Fi mt76 2026-10-08 |
-| **Wi-Fi 5 ГГц** | 160 МГц, Wi-Fi 6/7. MacBook 2x2: скачивание **1757 Мбит/с**, отдача **1643 Мбит/с** ([замер](firmware/openwrt/README.md#speed)) |
+| **Wi-Fi 5 ГГц** | 160 МГц, Wi-Fi 6/7. MacBook 2x2: скачивание **1757 Мбит/с**, отдача **1643 Мбит/с** ([замер](docs/en/technical.md#speed)) |
 | **Wi-Fi 2,4 ГГц** | работает, 20/40 МГц |
 | **Аппаратное ускорение** | трафик Wi-Fi ↔ провод идёт через PPE и NPU, процессор на полной скорости загружен на ~10% |
 | **Роуминг** | 802.11r: телефоны и ноутбуки бесшовно переходят между BE5000 и другой точкой OpenWrt с той же сетью |
@@ -41,18 +40,18 @@
 
 **Ограничение:** скачивание на одном быстром клиенте упирается примерно в 1,45–1,75 Гбит/с. Предел задаёт канал PCIe между процессором и радио (одна линия, 5 GT/s).
 
-> [!WARNING]
-> Установка перезаписывает заводские разделы `bdata` и `Factory`. Вернуться на прошивку Xiaomi можно только из полного бэкапа, который установщик снимет на шаге 1.
-
 ## 2. Что нужно
 
-- **Роутер с доступом по SSH** (root и пароль). Неважно, что на нём стоит: сток Xiaomi, OpenWrt xinyooo/iscle или X-WRT.
-- **Компьютер** с macOS или Linux (на Windows — WSL) и **сетевой кабель** до роутера.
+- **Роутер с root-доступом по SSH** на стоковой прошивке Xiaomi (или X-WRT). Как получить root на стоке, здесь не описано: см. [тему на форуме OpenWrt](https://forum.openwrt.org/t/xiaomi-be5000-wifi7-router/199438) и [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher). Уже стоит OpenWrt xinyooo/iscle? Нужен только [`sysupgrade -n`](#с-openwrt-xinyooo-или-iscle).
+- **Компьютер** с macOS или Linux (на Windows — WSL): `ssh` и `curl`, и **сетевой кабель** до роутера.
 
 > [!NOTE]
-> Настройки хранятся в UBI, а не в JFFS2: на флеше W25N01KV JFFS2 портит записи, и после перезагрузки роутер поднимается без сети ([issue #1](../../issues/1)). С OpenWrt iscle/xinyooo на этот образ переходят без сохранения настроек (`sysupgrade -n`).
+> Настройки хранятся в UBI, а не в JFFS2: на флеше W25N01KV JFFS2 портит записи, и после перезагрузки роутер поднимается без сети ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)). С OpenWrt iscle/xinyooo на этот образ переходят без сохранения настроек (`sysupgrade -n`).
 
 ## 3. Установка
+
+> [!WARNING]
+> Установка перезаписывает заводские разделы `bdata` и `Factory`. Вернуться на прошивку Xiaomi можно только из полного бэкапа, который установщик снимет на шаге 1.
 
 **Шаг 1. Одна команда на компьютере.** Подключите компьютер кабелем к порту LAN роутера (не к порту 2.5G). Скачайте репозиторий и запустите установщик с адресом роутера:
 
@@ -62,20 +61,25 @@ sh install.sh root@192.168.31.1        # 192.168.31.1 — адрес стока 
 ```
 
 Скрипт один раз спросит пароль роутера и сам:
-1. проверит, подходит ли загрузчик к чипу памяти (если нет, остановится, ничего не записав);
-2. сохранит полный бэкап флеша в папку `be5000-backup-<дата>` (её нужно сохранить: без неё прошивку Xiaomi не вернуть);
-3. спросит `YES`, перенесёт калибровку Wi-Fi и запишет загрузчик;
-4. перезагрузит роутер.
+1. скачает образ OpenWrt из [последнего релиза](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) и сверит контрольную сумму;
+2. проверит чип флеша и разделы (если загрузчик не поддерживает чип, остановится, ничего не записав);
+3. сохранит полный бэкап флеша в папку `be5000-backup-<дата>` (её нужно сохранить: без неё прошивку Xiaomi не вернуть);
+4. спросит `YES`, перенесёт калибровку Wi-Fi и запишет загрузчик;
+5. перезагрузит роутер.
 
 **Шаг 2. Прошивка через браузер.**
 1. Задайте компьютеру адрес вручную: IP `192.168.1.10`, маска `255.255.255.0`. На macOS: «Настройки → Сеть → (адаптер) → Подробнее → TCP/IP → Вручную».
-2. Откройте `http://192.168.1.1`, выберите файл [`firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`](firmware/openwrt/), нажмите **Upload**, затем **Proceed**.
+2. Откройте `http://192.168.1.1`, выберите файл `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`, скачанный на шаге 1 (установщик печатает полный путь), нажмите **Upload**, затем **Proceed**.
 3. Подождите 5 минут и не выключайте питание. Роутер сам перезагрузится в OpenWrt.
 
 **Шаг 3. Настройка.** Верните компьютеру автоматический адрес (DHCP), откройте `http://192.168.1.1`, задайте пароль, затем страну, имя и пароль Wi-Fi.
 
 > [!CAUTION]
 > Если во время записи загрузчика пропало питание или после шага 1 роутер не появляется в сети, поднять его можно только по UART (раздел 4).
+
+### С OpenWrt xinyooo или iscle
+
+Ваш загрузчик уже грузит ваш чип флеша, а калибровка уже лежит в `0xA0000`, поэтому `install.sh` не нужен (и не смог бы записать загрузчик: на тех образах `u-boot` только для чтения). Скачайте образ из [последнего релиза](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest), скопируйте на роутер и выполните `sysupgrade -n /tmp/<файл>`. Настройки не сохраняются: образы хранят их по-разному.
 
 Каждый шаг по отдельности, ручная проверка чипа и случай `READ-ONLY`: [docs/ru/install-ssh.md](docs/ru/install-ssh.md).
 
@@ -99,12 +103,12 @@ sh install.sh root@192.168.31.1        # 192.168.31.1 — адрес стока 
 |---|---|---|
 | [`firmware/bootloader/be5000-bootloader-w25n01kv.bin`](firmware/bootloader/) | загрузчик 512 КБ: BL2 (57 чипов NAND) + BL31 + U-Boot | флеш `0x0` (SSH: `be5000-install.sh bootloader`; UART: XMODEM №2) |
 | [`firmware/bootloader/be5000-uart-bl2-stage1.bin`](firmware/bootloader/) | тот же BL2 в мини-FIP | только UART, XMODEM №1 в BootROM |
-| `calibration.bin` (делаете сами) | EEPROM MT7992 вашего роутера, 128 КБ | флеш `0xA0000` |
-| [`firmware/openwrt/…-squashfs-sysupgrade.bin`](firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin) | OpenWrt ([описание сборки](firmware/openwrt/README.md)): ядро FIT + squashfs | раздел `firmware` `0xC0000` (веб-failsafe или `sysupgrade`) |
-| [`firmware/openwrt/…-initramfs-kernel.bin`](firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin) | OpenWrt в RAM для проверки и восстановления | TFTP → `bootm`, флеш не трогает |
+| [`openwrt-…-squashfs-sysupgrade.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | OpenWrt ([описание сборки](firmware/openwrt/README.md)): ядро FIT + squashfs. Лежит в релизе, `install.sh` скачивает его сам | раздел `firmware` `0xC0000` (веб-failsafe или `sysupgrade`) |
+| [`openwrt-…-initramfs-kernel.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | OpenWrt в RAM для проверки и восстановления. Лежит в релизе | TFTP → `bootm`, флеш не трогает |
 | [`install.sh`](install.sh) | установка одной командой: проверка, бэкап, калибровка, загрузчик | запускается на компьютере |
 | [`scripts/router/be5000-install.sh`](scripts/router/be5000-install.sh) | проверка, запись калибровки и загрузчика с проверкой чтением | запускается на роутере |
-| [`scripts/pc/`](scripts/pc/) | бэкап, калибровка, UART-восстановление, проверка загрузчика | запускается на ПК |
+| [`scripts/pc/`](scripts/pc/) | бэкап, UART-восстановление, проверка загрузчика | запускается на ПК |
+| [`scripts/maintainer/release.sh`](scripts/maintainer/release.sh) | публикует релиз и обновляет версии в документации | для мейнтейнера |
 
 Контрольные суммы и происхождение бинарников: [firmware/bootloader/README.md](firmware/bootloader/README.md), [firmware/openwrt/README.md](firmware/openwrt/README.md).
 
@@ -122,7 +126,7 @@ sh install.sh root@192.168.31.1        # 192.168.31.1 — адрес стока 
 - **Что внутри загрузчика.** BL2 со списком из 57 чипов NAND (включая W25N01KV), BL31 и U-Boot 2026.01 xinyooo с автозагрузкой и веб-failsafe.
 - **Почему два файла для UART.** BootROM принимает по XMODEM не больше `0x1F800` байт и только FIP с одним BL2. Затем BL2 сам просит `Press x to update firmware` и принимает весь 512 КБ образ, который записывает во флеш.
 
-Подробно, с логами и адресами: [docs/ru/technical.md](docs/ru/technical.md).
+Подробно, с логами и адресами: [docs/en/technical.md](docs/en/technical.md).
 
 ## 7. Источники и благодарности
 
@@ -132,6 +136,8 @@ sh install.sh root@192.168.31.1        # 192.168.31.1 — адрес стока 
 - [Ansuel/atf-airoha](https://github.com/Ansuel/atf-airoha): исходники BL2, по которым разобран формат XMODEM-восстановления.
 - [Medvedolog, issue #17](https://github.com/Medvedolog/airoha-router-ursusflasher/issues/17): наблюдения BootROM AN7552.
 
+**Лицензии.** Скрипты и документация: MIT ([LICENSE](LICENSE)). U-Boot и OpenWrt: GPL-2.0, исходники в [форке OpenWrt](https://github.com/pabragin/openwrt/tree/be5000-main). BL2 и BL31 внутри загрузчика — бинарники Airoha без опубликованной лицензии, взяты из сборки 100PoR-new. Фото: GPIO0 от 100PoR-new, контакты UART из темы на right.com.cn.
+
 ## 8. Обратная связь
 
-Отчёты об успехах и проблемах — в [Issues](../../issues). Укажите чип NAND и вывод `be5000-install.sh check`.
+Отчёты об успехах и проблемах — в [Issues](https://github.com/pabragin/xiaomi-be5000-openwrt/issues). Укажите чип NAND и вывод `be5000-install.sh check`.

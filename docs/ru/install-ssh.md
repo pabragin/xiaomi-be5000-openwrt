@@ -3,7 +3,7 @@
 [← README](../../README.ru.md) · [English](../en/install-ssh.md)
 
 > [!IMPORTANT]
-> **Коротко.** Пять шагов: проверка → бэкап → калибровка → загрузчик → прошивка через веб-failsafe. Все записи скрипт сверяет обратным чтением. Ни один шаг не требует знать, какой U-Boot стоит сейчас. Шаги 1–4 одной командой делает [`install.sh`](../../install.sh), здесь они расписаны по отдельности.
+> **Коротко.** Шаги: проверка → бэкап → калибровка → загрузчик → прошивка через веб-failsafe → первая настройка. Все записи скрипт сверяет обратным чтением. Ни один шаг не требует знать, какой U-Boot стоит сейчас. Шаги 1–4 одной командой делает [`install.sh`](../../install.sh), здесь они расписаны по отдельности.
 
 ## Содержание
 
@@ -31,23 +31,20 @@
 | Что | Зачем |
 |---|---|
 | root по SSH | все записи идут из системы, которая стоит на роутере |
-| `ssh`, `scp`, `python3` на ПК | скрипты в `scripts/pc/` |
+| `ssh` и `curl` на ПК | `python3` только для восстановления по UART |
 | кабель ПК ↔ LAN-порт | веб-failsafe работает только по проводу |
 | USB-UART 3.3 В | страховка: если запись загрузчика оборвётся, роутер поднимается только по UART |
-| [OpenWrt для BE5000](../../firmware/openwrt/) | `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` в этом репозитории ([описание сборки](../../firmware/openwrt/README.md)), SHA-256 `2b5ab049…` |
+| [OpenWrt для BE5000](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` из последнего релиза ([описание сборки](../../firmware/openwrt/README.md)). `install.sh` сам скачивает его в `firmware/openwrt/` и сверяет с `SHA256SUMS` |
 
 ```sh
 git clone https://github.com/pabragin/xiaomi-be5000-openwrt && cd xiaomi-be5000-openwrt
 R=root@192.168.31.1     # сток Xiaomi; на OpenWrt обычно root@192.168.1.1
 ```
 
-> [!NOTE]
-> На свежем OpenWrt для `scp` нужен ключ `-O`: там нет sftp-сервера.
-
 ## Шаг 1. Проверка
 
 ```sh
-scp -O scripts/router/be5000-install.sh $R:/tmp/
+ssh $R 'cat > /tmp/be5000-install.sh' < scripts/router/be5000-install.sh
 ssh $R sh /tmp/be5000-install.sh check
 ```
 
@@ -79,7 +76,7 @@ ssh $R sh /tmp/be5000-install.sh check
 | Строка | Что смотреть |
 |---|---|
 | `Detected flash layout` | `stock` — заводская разметка, `replacement` — разметка xinyooo/iscle, `unknown` — остановитесь и откройте issue |
-| `Result` и `SUPPORTED` | чип должен быть в [списке BL2](technical.md#поддерживаемые-чипы-nand). При `NOT SUPPORTED` остановитесь; при `NOT IDENTIFIED` прочитайте маркировку на микросхеме |
+| `Result` и `SUPPORTED` | чип должен быть в [списке BL2](../en/technical.md#supported-nand-chips). При `NOT SUPPORTED` остановитесь; при `NOT IDENTIFIED` прочитайте маркировку на микросхеме |
 | `bootloader partition … READ-ONLY` | шаг 4 из этой системы не выполнить, см. [READ-ONLY](#если-раздел-read-only) |
 | `calibration block … has data` | блок `0xA0000` занят чем-то неизвестным. Остановитесь: скрипт не будет его стирать |
 | `Factory EEPROM header: 9279` | (только сток) калибровка на месте, её можно переносить |
@@ -117,7 +114,7 @@ cat /sys/class/mtd/mtd0/writesize                  # размер страниц
 |---|---|---|---|
 | Winbond, страница 2048, **OOB 96** или ID `EF AE 21` | W25N01KV | ✅ | ❌ PANIC |
 | Winbond, страница 2048, **OOB 64** или ID `EF AA 21` | W25N01GV | ✅ | ✅ |
-| ESMT, OOB 64 | F50L1G41LB / EM73… | ✅ если модель есть в [списке](technical.md#поддерживаемые-чипы-nand) | ✅ если модель есть в списке |
+| ESMT, OOB 64 | F50L1G41LB / EM73… | ✅ если модель есть в [списке](../en/technical.md#supported-nand-chips) | ✅ если модель есть в списке |
 | не определяется | — | прочитайте маркировку на 8-ногой микросхеме рядом с SoC | — |
 
 > [!NOTE]
@@ -159,17 +156,15 @@ ssh $R sh /tmp/be5000-install.sh calibration
 |---|---|
 | Сток Xiaomi, Factory на месте | `be5000-install.sh calibration` |
 | Калибровка уже в `0xA0000` (OpenWrt xinyooo/iscle) | та же команда ответит `calibration already in place` |
-| Factory уже затёрт, есть бэкап | `scp -O Factory.bin $R:/tmp/` и `be5000-install.sh calibration /tmp/Factory.bin` (4 МБ дамп или готовый блок 128 КБ) |
+| Factory уже затёрт, есть бэкап | `ssh $R 'cat > /tmp/Factory.bin' < Factory.bin` и `be5000-install.sh calibration /tmp/Factory.bin` (4 МБ дамп или готовый блок 128 КБ) |
 | OpenWrt в RAM (initramfs) на заводском флеше | команда находит заводские данные `Factory` внутри `firmware` и пишет блок в `art`: в этой сборке раздел доступен на запись |
-
-На ПК то же самое делает `python3 scripts/pc/be5000-calibration.py Factory.bin calibration.bin`.
 
 ## Шаг 4. Загрузчик
 
 ```sh
-scp -O firmware/bootloader/be5000-bootloader-w25n01kv.bin $R:/tmp/
+ssh $R 'cat > /tmp/be5000-bootloader-w25n01kv.bin' < firmware/bootloader/be5000-bootloader-w25n01kv.bin
 ssh $R sh /tmp/be5000-install.sh bootloader /tmp/be5000-bootloader-w25n01kv.bin
-scp -O $R:/tmp/be5000-mtd0-old-bootloader.bin be5000-backup-*/   # старый загрузчик на ПК
+ssh $R cat /tmp/be5000-mtd0-old-bootloader.bin > be5000-backup-<дата>/old-bootloader.bin   # старый загрузчик на ПК
 ```
 
 Скрипт проверит FIP-заголовок образа, сохранит старый загрузчик в `/tmp`, запишет новый и сверит его чтением.
@@ -182,8 +177,8 @@ scp -O $R:/tmp/be5000-mtd0-old-bootloader.bin be5000-backup-*/   # старый 
 1. Перезагрузите роутер (`ssh $R reboot` или выключить и включить).
 2. U-Boot попробует загрузить OpenWrt из раздела `firmware`. Там пока данные стока, поэтому загрузка не пройдёт, и через пару секунд поднимется страница восстановления.
 3. Подключите ПК кабелем к LAN-порту и задайте ему адрес вручную: `192.168.1.10`, маска `255.255.255.0`.
-4. Откройте `http://192.168.1.1`, выберите [`firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`](../../firmware/openwrt/), нажмите **Upload**.
-5. На странице подтверждения сверьте MD5 и размер (`11272464` байт) и нажмите **Proceed**. U-Boot стирает свой раздел `firmware` (64 МБ, вместе с разделом настроек `ubi`) и записывает образ. Это занимает **3–5 минут**: страница может перестать отвечать, питание не выключайте. Потом роутер сам перезагрузится в OpenWrt.
+4. Откройте `http://192.168.1.1`, выберите образ из шага 0 (`firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`), нажмите **Upload**.
+5. На странице подтверждения сверьте, что размер совпадает с загруженным файлом, и нажмите **Proceed**. U-Boot стирает свой раздел `firmware` (64 МБ, вместе с разделом настроек `ubi`) и записывает образ. Это занимает **3–5 минут**: страница может перестать отвечать, питание не выключайте. Потом роутер сам перезагрузится в OpenWrt.
 6. На первой загрузке OpenWrt создаёт в разделе `ubi` том `rootfs_data` для настроек. В логе будет `- creating rootfs_data UBI volume -` и `mount_root: switching to ubifs overlay`.
 
 > [!TIP]
@@ -206,7 +201,7 @@ Wi-Fi по умолчанию выключен. В LuCI (`http://192.168.1.1`) �
 | Где | Что делать |
 |---|---|
 | OpenWrt из этого репозитория, установленный или в RAM | `art` доступен на запись (проверено), шаг 3 работает. `u-boot` только для чтения: загрузчик пишется через [UART](recovery-uart.md) |
-| OpenWrt iscle/xinyooo | там `u-boot` и `art` только для чтения. Вариант без разборки: `kmod-mtd-rw` и `insmod mtd-rw i_want_a_brick=1` (не проверялся). Надёжный вариант: для калибровки загрузить initramfs из этого репозитория по TFTP, загрузчик через [UART](recovery-uart.md) |
+| OpenWrt iscle/xinyooo | там `u-boot` и `art` только для чтения. Вариант без разборки: `kmod-mtd-rw` и `insmod mtd-rw i_want_a_brick=1` (не проверялся). Надёжный вариант: для калибровки загрузить initramfs из этого репозитория по TFTP, загрузчик через [UART](recovery-uart.md). Для перехода на этот образ шаг с загрузчиком вообще не нужен: достаточно `sysupgrade -n` ([README](../../README.ru.md#с-openwrt-xinyooo-или-iscle)) |
 | Сток Xiaomi | разделы загрузчика и калибровки на стоке доступны на запись (проверено), этот случай не возникает. Если всё же `READ-ONLY` — [UART](recovery-uart.md), затем шаг 5 этой инструкции |
 
 ## Если что-то пошло не так

@@ -2,29 +2,29 @@
   <rect width="980" height="420" fill="#ffffff"/>
   <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#37474f"/></marker>
   <marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#b02a37"/></marker></defs>
-  <text x="20" y="32" font-size="20" font-weight="bold" fill="#111">Цепочка загрузки</text>
+  <text x="20" y="32" font-size="20" font-weight="bold" fill="#111">Boot chain</text>
 
-  <text x="20" y="72" font-size="14" font-weight="bold" fill="#146c43">Обычная загрузка (GPIO0 разомкнут, "HWCONF is 1f")</text>
+  <text x="20" y="72" font-size="14" font-weight="bold" fill="#146c43">Normal boot (GPIO0 open, "HWCONF is 1f")</text>
   <g font-size="13" text-anchor="middle">
-    <rect x="20" y="90" width="150" height="62" rx="8" fill="#e2e3e5" stroke="#37474f"/><text x="95" y="116" font-weight="bold">BootROM</text><text x="95" y="136">в SoC</text>
-    <rect x="215" y="90" width="170" height="62" rx="8" fill="#d1e7dd" stroke="#146c43" stroke-width="2"/><text x="300" y="116" font-weight="bold">BL2 (NAND 0x800)</text><text x="300" y="136">DRAM, таблица NAND</text>
-    <rect x="430" y="90" width="150" height="62" rx="8" fill="#d1e7dd" stroke="#146c43"/><text x="505" y="116" font-weight="bold">BL31 + U-Boot</text><text x="505" y="136">из того же FIP</text>
-    <rect x="625" y="90" width="150" height="62" rx="8" fill="#cfe2ff" stroke="#0a58ca"/><text x="700" y="116" font-weight="bold">OpenWrt</text><text x="700" y="136">firmware с 0xC0000</text>
-    <rect x="820" y="90" width="140" height="62" rx="8" fill="#fff3cd" stroke="#997404"/><text x="890" y="116" font-weight="bold">Веб-failsafe</text><text x="890" y="136">192.168.1.1</text>
+    <rect x="20" y="90" width="150" height="62" rx="8" fill="#e2e3e5" stroke="#37474f"/><text x="95" y="116" font-weight="bold">BootROM</text><text x="95" y="136">in SoC</text>
+    <rect x="215" y="90" width="170" height="62" rx="8" fill="#d1e7dd" stroke="#146c43" stroke-width="2"/><text x="300" y="116" font-weight="bold">BL2 (NAND 0x800)</text><text x="300" y="136">DRAM init, NAND table</text>
+    <rect x="430" y="90" width="150" height="62" rx="8" fill="#d1e7dd" stroke="#146c43"/><text x="505" y="116" font-weight="bold">BL31 + U-Boot</text><text x="505" y="136">from the same FIP</text>
+    <rect x="625" y="90" width="150" height="62" rx="8" fill="#cfe2ff" stroke="#0a58ca"/><text x="700" y="116" font-weight="bold">OpenWrt</text><text x="700" y="136">firmware @0xC0000</text>
+    <rect x="820" y="90" width="140" height="62" rx="8" fill="#fff3cd" stroke="#997404"/><text x="890" y="116" font-weight="bold">Web failsafe</text><text x="890" y="136">192.168.1.1</text>
   </g>
   <g stroke="#37474f" stroke-width="2"><line x1="170" y1="121" x2="213" y2="121" marker-end="url(#a)"/><line x1="385" y1="121" x2="428" y2="121" marker-end="url(#a)"/><line x1="580" y1="121" x2="623" y2="121" marker-end="url(#a)"/></g>
   <path d="M560,152 C600,178 860,178 890,154" fill="none" stroke="#997404" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a)"/>
-  <text x="760" y="186" font-size="12" text-anchor="middle" fill="#997404">нет OpenWrt</text>
+  <text x="760" y="186" font-size="12" text-anchor="middle" fill="#997404">bootm failed</text>
   <path d="M260,152 C250,190 200,215 170,236" fill="none" stroke="#b02a37" stroke-width="2" marker-end="url(#r)"/>
-  <text x="270" y="214" font-size="12" fill="#b02a37">чип NAND не в таблице BL2 → PANIC at PC : 0x810017a9</text>
+  <text x="270" y="214" font-size="12" fill="#b02a37">NAND chip not in BL2 table → PANIC at PC : 0x810017a9</text>
 
-  <text x="20" y="262" font-size="14" font-weight="bold" fill="#b02a37">Восстановление (GPIO0 → GND, "HWCONF is f")</text>
+  <text x="20" y="262" font-size="14" font-weight="bold" fill="#b02a37">Recovery (GPIO0 → GND, "HWCONF is f")</text>
   <g font-size="13" text-anchor="middle">
-    <rect x="20" y="280" width="150" height="72" rx="8" fill="#e2e3e5" stroke="#37474f"/><text x="95" y="304" font-weight="bold">BootROM</text><text x="95" y="322">"Press x"</text><text x="95" y="340" fill="#555">~30 с</text>
-    <rect x="215" y="280" width="200" height="72" rx="8" fill="#f8d7da" stroke="#b02a37" stroke-width="2"/><text x="315" y="304" font-weight="bold">XMODEM #1</text><text x="315" y="322">be5000-uart-bl2-stage1.bin</text><text x="315" y="340" fill="#555">110 КБ → SRAM</text>
-    <rect x="460" y="280" width="200" height="72" rx="8" fill="#d1e7dd" stroke="#146c43"/><text x="560" y="304" font-weight="bold">BL2 в RAM</text><text x="560" y="322">"Press x to update</text><text x="560" y="340">firmware"</text>
-    <rect x="705" y="280" width="255" height="72" rx="8" fill="#f8d7da" stroke="#b02a37" stroke-width="2"/><text x="832" y="304" font-weight="bold">XMODEM #2</text><text x="832" y="322">be5000-bootloader-w25n01kv.bin</text><text x="832" y="340" fill="#555">512 КБ → флеш 0x0 → U-Boot</text>
+    <rect x="20" y="280" width="150" height="72" rx="8" fill="#e2e3e5" stroke="#37474f"/><text x="95" y="304" font-weight="bold">BootROM</text><text x="95" y="322">"Press x"</text><text x="95" y="340" fill="#555">~30 s</text>
+    <rect x="215" y="280" width="200" height="72" rx="8" fill="#f8d7da" stroke="#b02a37" stroke-width="2"/><text x="315" y="304" font-weight="bold">XMODEM #1</text><text x="315" y="322">be5000-uart-bl2-stage1.bin</text><text x="315" y="340" fill="#555">110 KB → SRAM</text>
+    <rect x="460" y="280" width="200" height="72" rx="8" fill="#d1e7dd" stroke="#146c43"/><text x="560" y="304" font-weight="bold">BL2 in RAM</text><text x="560" y="322">"Press x to update</text><text x="560" y="340">firmware"</text>
+    <rect x="705" y="280" width="255" height="72" rx="8" fill="#f8d7da" stroke="#b02a37" stroke-width="2"/><text x="832" y="304" font-weight="bold">XMODEM #2</text><text x="832" y="322">be5000-bootloader-w25n01kv.bin</text><text x="832" y="340" fill="#555">512 KB → flash 0x0 → U-Boot</text>
   </g>
   <g stroke="#b02a37" stroke-width="2"><line x1="170" y1="316" x2="213" y2="316" marker-end="url(#r)"/><line x1="415" y1="316" x2="458" y2="316" marker-end="url(#r)"/><line x1="660" y1="316" x2="703" y2="316" marker-end="url(#r)"/></g>
-  <text x="20" y="392" font-size="13" fill="#333">Скрипт scripts/pc/be5000-uart-recover.py делает оба шага сам.</text>
+  <text x="20" y="392" font-size="13" fill="#333">The script runs both stages automatically.</text>
 </svg>

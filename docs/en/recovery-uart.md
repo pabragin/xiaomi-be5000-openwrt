@@ -33,7 +33,7 @@
 
 ## UART wiring
 
-![UART wiring](../../images/uart-wiring.en.svg)
+![UART wiring](../../images/uart-wiring.svg)
 
 1. Adapter GND → router GND.
 2. Adapter TX → router RX, adapter RX → router TX.
@@ -41,9 +41,9 @@
 4. Settings: 115200, 8N1, no flow control.
 
 > [!TIP]
-> Link check: run `python3 scripts/pc/be5000-uart-recover.py <port>` and power on the router **without** GPIO0. If text appears in `be5000-uart.log` (`Secure key does not exist`, `AN7552DRAMC`), the wiring is correct. If the log is empty, swap TX and RX.
+> Link check: run `python3 scripts/pc/be5000-uart-recover.py <port>` and power on the router **without** GPIO0. If text appears in `be5000-uart.log` (`Secure key does not exist`, `AN7552DRAMC`), the wiring is correct. If the log is empty, swap TX and RX. The script then waits up to 15 minutes for `Press x`; stop it with Ctrl-C.
 
-Where the pins are: three pins at the board edge between the heatsinks; from left to right (LAN ports at the back) they are the router's **RX, GND, TX**. So the adapter TX goes to the left pin (RX) and the adapter RX to the right pin (TX). Photo: [right.com.cn](https://www.right.com.cn).
+Where the pins are: three pins at the board edge between the heatsinks; from left to right (LAN ports at the back) they are the router's **RX, GND, TX**. So the adapter TX goes to the left pin (RX) and the adapter RX to the right pin (TX). Photo from a [right.com.cn](https://www.right.com.cn) forum post.
 
 <img src="../../images/uart-pins.png" alt="UART on the Xiaomi BE5000 board: rx, gnd, tx" width="480">
 
@@ -57,7 +57,7 @@ Short GPIO0 to **GND**, for example to the shield frame next to it. Sign that th
 
 ## Recovery
 
-![Boot chain](../../images/boot-chain.en.svg)
+![Boot chain](../../images/boot-chain.svg)
 
 1. Unplug the router from the wall socket.
 2. Start the script. It waits up to 15 minutes:

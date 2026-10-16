@@ -1,8 +1,8 @@
-# Personal device data must never be committed
+# Personal device data and downloaded images must never be committed
 be5000-backup-*/
-calibration.bin
-Factory*.bin
-*-Factory.bin
+*.bin
+!firmware/bootloader/*.bin
+firmware/openwrt/SHA256SUMS
 *.log
 __pycache__/
 .DS_Store

@@ -4,8 +4,7 @@
 
 > [!IMPORTANT]
 > **TL;DR.** This repository shows how to install OpenWrt on the Xiaomi BE5000 with only root SSH access, and how to recover the router over UART if the bootloader is broken.
-> - **Main trap:** the bootloader from the xinyooo releases and the X-WRT preloader do not know the **Winbond W25N01KV** flash chip. With this chip the router crashes on every cold boot with `PANIC at PC : 0x810017a9`.
-> - **This repository has a bootloader that knows it:** [`be5000-bootloader-w25n01kv.bin`](firmware/bootloader/): BL2 with 57 NAND chips, U-Boot with autoboot and web recovery.
+> - **Three steps:** one command on the computer, one file upload in the browser, Wi-Fi setup. The installer checks the flash chip first: the bootloader here knows 57 NAND chips, including the **Winbond W25N01KV** that the xinyooo and X-WRT bootloaders crash on (`PANIC at PC : 0x810017a9`).
 > - **Wi-Fi speed:** 1757 Mbit/s download and 1643 Mbit/s upload through the BE5000 (OpenSpeedTest, a 2x2 160 MHz MacBook to a wired PC).
 > - **Tested on hardware:** BE5000 (AN7563PT, W25N01KV, 512 MB DDR3): SSH install from Xiaomi stock firmware, UART recovery, web failsafe install, cold boot, our own OpenWrt build with settings in UBI, Wi-Fi calibration built from the router's own Factory data.
 
@@ -27,7 +26,7 @@ Everything below is tested on a BE5000 running this firmware.
 | What | How it works |
 |---|---|
 | **System** | OpenWrt SNAPSHOT `r36539+836`, **Linux 6.18.55** kernel, mt76 Wi-Fi driver 2026-10-08 |
-| **5 GHz Wi-Fi** | 160 MHz, Wi-Fi 6/7. A 2x2 MacBook: **1757 Mbit/s** download, **1643 Mbit/s** upload ([test](firmware/openwrt/README.md#speed)) |
+| **5 GHz Wi-Fi** | 160 MHz, Wi-Fi 6/7. A 2x2 MacBook: **1757 Mbit/s** download, **1643 Mbit/s** upload ([test](docs/en/technical.md#speed)) |
 | **2.4 GHz Wi-Fi** | works, 20/40 MHz |
 | **Hardware offload** | Wi-Fi ↔ wired traffic goes through the PPE and the NPU; the CPU is ~10% busy at full speed |
 | **Roaming** | 802.11r: phones and laptops move seamlessly between the BE5000 and another OpenWrt AP with the same network |
@@ -41,18 +40,18 @@ Everything below is tested on a BE5000 running this firmware.
 
 **Limitation:** download to a single fast client tops out at about 1.45–1.75 Gbit/s. The limit is the PCIe link between the CPU and the radio (one lane, 5 GT/s).
 
-> [!WARNING]
-> Installing overwrites the factory `bdata` and `Factory` partitions. You can return to the Xiaomi firmware only from the full backup the installer makes in step 1.
-
 ## 2. Requirements
 
-- **A router you can reach over SSH** (root and its password). It does not matter what runs on it: Xiaomi stock firmware, xinyooo/iscle OpenWrt or X-WRT.
-- **A computer** with macOS or Linux (on Windows use WSL) and **a network cable** to the router.
+- **A router with root SSH access** on the Xiaomi stock firmware (or X-WRT). Getting root on the stock firmware is not covered here: see the [OpenWrt forum thread](https://forum.openwrt.org/t/xiaomi-be5000-wifi7-router/199438) and [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher). Already on OpenWrt xinyooo/iscle? You only need [`sysupgrade -n`](#from-xinyooo-or-iscle-openwrt).
+- **A computer** with macOS or Linux (on Windows use WSL): `ssh` and `curl`, and **a network cable** to the router.
 
 > [!NOTE]
-> Settings are kept in UBI, not JFFS2: on W25N01KV flash JFFS2 corrupts writes, and after a reboot the router comes up with no network ([issue #1](../../issues/1)). Moving from iscle/xinyooo OpenWrt to this image does not keep settings (`sysupgrade -n`).
+> Settings are kept in UBI, not JFFS2: on W25N01KV flash JFFS2 corrupts writes, and after a reboot the router comes up with no network ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)). Moving from iscle/xinyooo OpenWrt to this image does not keep settings (`sysupgrade -n`).
 
 ## 3. Install
+
+> [!WARNING]
+> Installing overwrites the factory `bdata` and `Factory` partitions. You can return to the Xiaomi firmware only from the full backup the installer makes in step 1.
 
 **Step 1. One command on the computer.** Connect the computer by cable to a LAN port of the router (not the 2.5G port). Get the repository and run the installer with the router's address:
 
@@ -62,14 +61,15 @@ sh install.sh root@192.168.31.1        # 192.168.31.1 is the Xiaomi stock addres
 ```
 
 The script asks for the router password once and then:
-1. checks that the bootloader supports your flash chip (if not, it stops without writing anything);
-2. saves a full flash backup to `be5000-backup-<date>` (keep it: without it you cannot go back to Xiaomi firmware);
-3. asks for `YES`, moves the Wi-Fi calibration and writes the bootloader;
-4. reboots the router.
+1. downloads the OpenWrt image from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) and checks its checksum;
+2. checks the flash chip and the partitions (if the bootloader does not support the chip, it stops before writing anything);
+3. saves a full flash backup to `be5000-backup-<date>` (keep it: without it you cannot go back to Xiaomi firmware);
+4. asks for `YES`, moves the Wi-Fi calibration and writes the bootloader;
+5. reboots the router.
 
 **Step 2. Firmware in the browser.**
 1. Set the computer's address manually: IP `192.168.1.10`, mask `255.255.255.0`. On macOS: System Settings → Network → (adapter) → Details → TCP/IP → Configure IPv4: Manually.
-2. Open `http://192.168.1.1`, choose [`firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`](firmware/openwrt/), click **Upload**, then **Proceed**.
+2. Open `http://192.168.1.1`, choose `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` downloaded in step 1 (the installer prints the full path), click **Upload**, then **Proceed**.
 3. Wait 5 minutes and do not cut the power. The router reboots into OpenWrt by itself.
 
 **Step 3. Setup.** Switch the computer back to an automatic address (DHCP), open `http://192.168.1.1`, set a password, then the country, Wi-Fi name and Wi-Fi password.
@@ -77,16 +77,20 @@ The script asks for the router password once and then:
 > [!CAUTION]
 > If the power is lost while the bootloader is being written, or the router does not show up on the network after step 1, only UART can bring it back (section 4).
 
+### From xinyooo or iscle OpenWrt
+
+Your bootloader already boots your flash chip and the calibration is already at `0xA0000`, so `install.sh` is not needed (and could not write the bootloader: `u-boot` is read-only on those images). Download the image from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest), copy it to the router and run `sysupgrade -n /tmp/<file>`. Settings are not kept: the images store them differently.
+
 Step-by-step install, the manual flash chip check and the `READ-ONLY` case: [docs/en/install-ssh.md](docs/en/install-ssh.md).
 
 ## 4. If the bootloader is broken: UART
 
 Symptoms: no network activity, `PANIC at PC : 0x810017a9` in the UART log, or any stop before U-Boot.
 
-![Boot chain](images/boot-chain.en.svg)
+![Boot chain](images/boot-chain.svg)
 
 1. Connect a USB-UART adapter: GND–GND, TX↔RX, **do not connect VCC**, 115200 8N1.
-   ![Wiring](images/uart-wiring.en.svg)
+   ![Wiring](images/uart-wiring.svg)
 2. Run `python3 scripts/pc/be5000-uart-recover.py /dev/ttyUSB0` (on macOS the port is `/dev/cu.usbserial-…`).
 3. Short **GPIO0 to GND**, hold it and power on. For where the pad is, see the [photo](docs/en/recovery-uart.md#where-gpio0-is).
 4. The script runs both XMODEM stages and writes the bootloader. Then release GPIO0.
@@ -99,12 +103,12 @@ Details, with photos and troubleshooting: [docs/en/recovery-uart.md](docs/en/rec
 |---|---|---|
 | [`firmware/bootloader/be5000-bootloader-w25n01kv.bin`](firmware/bootloader/) | 512 KB bootloader: BL2 (57 NAND chips) + BL31 + U-Boot | flash `0x0` (SSH: `be5000-install.sh bootloader`; UART: XMODEM #2) |
 | [`firmware/bootloader/be5000-uart-bl2-stage1.bin`](firmware/bootloader/) | the same BL2 in a mini FIP | UART only, XMODEM #1 to the BootROM |
-| `calibration.bin` (you make it) | MT7992 EEPROM of your router, 128 KB | flash `0xA0000` |
-| [`firmware/openwrt/…-squashfs-sysupgrade.bin`](firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin) | OpenWrt ([about the build](firmware/openwrt/README.md)): FIT kernel + squashfs | `firmware` partition `0xC0000` (web failsafe or `sysupgrade`) |
-| [`firmware/openwrt/…-initramfs-kernel.bin`](firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin) | OpenWrt in RAM for testing and recovery | TFTP → `bootm`, does not touch flash |
+| [`openwrt-…-squashfs-sysupgrade.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | OpenWrt ([about the build](firmware/openwrt/README.md)): FIT kernel + squashfs. In the release, `install.sh` downloads it | `firmware` partition `0xC0000` (web failsafe or `sysupgrade`) |
+| [`openwrt-…-initramfs-kernel.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | OpenWrt in RAM for testing and recovery. In the release | TFTP → `bootm`, does not touch flash |
 | [`install.sh`](install.sh) | one-command install: check, backup, calibration, bootloader | runs on the computer |
 | [`scripts/router/be5000-install.sh`](scripts/router/be5000-install.sh) | check, write calibration and bootloader with read-back verification | runs on the router |
-| [`scripts/pc/`](scripts/pc/) | backup, calibration, UART recovery, bootloader check | runs on the computer |
+| [`scripts/pc/`](scripts/pc/) | backup, UART recovery, bootloader check | runs on the computer |
+| [`scripts/maintainer/release.sh`](scripts/maintainer/release.sh) | publishes a release and updates the version strings in the docs | maintainer |
 
 Checksums and origin of the binaries: [firmware/bootloader/README.md](firmware/bootloader/README.md), [firmware/openwrt/README.md](firmware/openwrt/README.md).
 
@@ -117,7 +121,7 @@ Checksums and origin of the binaries: [firmware/bootloader/README.md](firmware/b
 | Firmware | OpenWrt (our build based on [iscle](https://github.com/iscle/openwrt)) in the `firmware` partition at `0xC0000`, 24 MiB |
 | Settings | `ubi` partition at `0x18C0000`, 40 MiB, `rootfs_data` volume (UBIFS) |
 
-![Flash layout](images/flash-layout.en.svg)
+![Flash layout](images/flash-layout.svg)
 
 - **What is in the bootloader.** BL2 with a list of 57 NAND chips (including W25N01KV), BL31 and xinyooo U-Boot 2026.01 with autoboot and web failsafe.
 - **Why UART needs two files.** The BootROM accepts at most `0x1F800` bytes over XMODEM, and only a FIP with a single BL2. Then BL2 itself prompts `Press x to update firmware`, accepts the full 512 KB image and writes it to flash.
@@ -132,6 +136,8 @@ Details, with logs and addresses: [docs/en/technical.md](docs/en/technical.md).
 - [Ansuel/atf-airoha](https://github.com/Ansuel/atf-airoha): BL2 sources used to work out the XMODEM recovery format.
 - [Medvedolog, issue #17](https://github.com/Medvedolog/airoha-router-ursusflasher/issues/17): AN7552 BootROM observations.
 
+**Licences.** Scripts and docs: MIT ([LICENSE](LICENSE)). U-Boot and OpenWrt: GPL-2.0, sources in the [OpenWrt fork](https://github.com/pabragin/openwrt/tree/be5000-main). BL2 and BL31 inside the bootloader are Airoha binaries without a published licence, redistributed from 100PoR-new's build. Photos: GPIO0 by 100PoR-new, UART pins from a right.com.cn forum post.
+
 ## 8. Feedback
 
-Report successes and problems in [Issues](../../issues). Include the NAND chip and the output of `be5000-install.sh check`.
+Report successes and problems in [Issues](https://github.com/pabragin/xiaomi-be5000-openwrt/issues). Include the NAND chip and the output of `be5000-install.sh check`.

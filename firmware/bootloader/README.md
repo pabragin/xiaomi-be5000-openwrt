@@ -1,4 +1,4 @@
-# Bootloader / Загрузчик
+# Bootloader
 
 | File | Size | SHA-256 |
 |---|---|---|

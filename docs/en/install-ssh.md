@@ -3,7 +3,7 @@
 [← README](../../README.md) · [Русский](../ru/install-ssh.md)
 
 > [!IMPORTANT]
-> **TL;DR.** Five steps: check → backup → calibration → bootloader → firmware via web failsafe. The script verifies every write by reading it back. No step requires knowing which U-Boot is installed now. [`install.sh`](../../install.sh) runs steps 1–4 in one command; this page lists them one by one.
+> **TL;DR.** Steps: check → backup → calibration → bootloader → firmware via web failsafe → first setup. The script verifies every write by reading it back. No step requires knowing which U-Boot is installed now. [`install.sh`](../../install.sh) runs steps 1–4 in one command; this page lists them one by one.
 
 ## Contents
 
@@ -31,23 +31,20 @@
 | What | Why |
 |---|---|
 | root over SSH | all writes are done from the system installed on the router |
-| `ssh`, `scp`, `python3` on the PC | scripts in `scripts/pc/` |
+| `ssh` and `curl` on the PC | `python3` only for UART recovery |
 | cable PC ↔ LAN port | web failsafe works only over a cable |
 | USB-UART 3.3 V | insurance: if the bootloader write is interrupted, the router can be recovered only over UART |
-| [OpenWrt for BE5000](../../firmware/openwrt/) | `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` in this repository ([about the build](../../firmware/openwrt/README.md)), SHA-256 `2b5ab049…` |
+| [OpenWrt for BE5000](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` from the latest release ([about the build](../../firmware/openwrt/README.md)). `install.sh` downloads it into `firmware/openwrt/` and checks it against `SHA256SUMS` |
 
 ```sh
 git clone https://github.com/pabragin/xiaomi-be5000-openwrt && cd xiaomi-be5000-openwrt
 R=root@192.168.31.1     # Xiaomi stock firmware; on OpenWrt usually root@192.168.1.1
 ```
 
-> [!NOTE]
-> On a fresh OpenWrt, `scp` needs the `-O` flag: there is no sftp server.
-
 ## Step 1. Check
 
 ```sh
-scp -O scripts/router/be5000-install.sh $R:/tmp/
+ssh $R 'cat > /tmp/be5000-install.sh' < scripts/router/be5000-install.sh
 ssh $R sh /tmp/be5000-install.sh check
 ```
 
@@ -159,17 +156,15 @@ What the command does:
 |---|---|
 | Xiaomi stock firmware, Factory present | `be5000-install.sh calibration` |
 | Calibration already at `0xA0000` (OpenWrt xinyooo/iscle) | the same command answers `calibration already in place` |
-| Factory already overwritten, you have a backup | `scp -O Factory.bin $R:/tmp/` and `be5000-install.sh calibration /tmp/Factory.bin` (4 MB dump or a ready 128 KB block) |
+| Factory already overwritten, you have a backup | `ssh $R 'cat > /tmp/Factory.bin' < Factory.bin` and `be5000-install.sh calibration /tmp/Factory.bin` (4 MB dump or a ready 128 KB block) |
 | OpenWrt in RAM (initramfs) on a stock flash | the command finds the stock `Factory` data inside `firmware` and writes the block to `art`: the partition is writable in this build |
-
-On a PC the same is done by `python3 scripts/pc/be5000-calibration.py Factory.bin calibration.bin`.
 
 ## Step 4. Bootloader
 
 ```sh
-scp -O firmware/bootloader/be5000-bootloader-w25n01kv.bin $R:/tmp/
+ssh $R 'cat > /tmp/be5000-bootloader-w25n01kv.bin' < firmware/bootloader/be5000-bootloader-w25n01kv.bin
 ssh $R sh /tmp/be5000-install.sh bootloader /tmp/be5000-bootloader-w25n01kv.bin
-scp -O $R:/tmp/be5000-mtd0-old-bootloader.bin be5000-backup-*/   # old bootloader to the PC
+ssh $R cat /tmp/be5000-mtd0-old-bootloader.bin > be5000-backup-<date>/old-bootloader.bin   # old bootloader to the PC
 ```
 
 The script checks the FIP header of the image, saves the old bootloader to `/tmp`, writes the new one and verifies it by reading it back.
@@ -182,8 +177,8 @@ The script checks the FIP header of the image, saves the old bootloader to `/tmp
 1. Reboot the router (`ssh $R reboot` or power off and on).
 2. U-Boot tries to boot OpenWrt from the `firmware` partition. It still holds stock data, so the boot fails, and the recovery page comes up in a few seconds.
 3. Connect the PC to a LAN port with a cable and set its address by hand: `192.168.1.10`, netmask `255.255.255.0`.
-4. Open `http://192.168.1.1`, select [`firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`](../../firmware/openwrt/), click **Upload**.
-5. On the confirmation page check the MD5 and the size (`11272464` bytes) and click **Proceed**. U-Boot erases its `firmware` partition (64 MiB, including the `ubi` settings partition) and writes the image. This takes **3–5 minutes**; the page may stop responding. Do not power off. The router then reboots into OpenWrt.
+4. Open `http://192.168.1.1`, select the image from step 0 (`firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`), click **Upload**.
+5. On the confirmation page check that the size matches the file you uploaded and click **Proceed**. U-Boot erases its `firmware` partition (64 MiB, including the `ubi` settings partition) and writes the image. This takes **3–5 minutes**; the page may stop responding. Do not power off. The router then reboots into OpenWrt.
 6. On the first boot OpenWrt creates the `rootfs_data` volume for settings in the `ubi` partition. The log shows `- creating rootfs_data UBI volume -` and `mount_root: switching to ubifs overlay`.
 
 > [!TIP]
@@ -206,7 +201,7 @@ Further updates are installed with the regular OpenWrt `sysupgrade`.
 | Where | What to do |
 |---|---|
 | OpenWrt from this repository, installed or in RAM | `art` is writable (tested), so step 3 works. `u-boot` is read-only: the bootloader is written over [UART](recovery-uart.md) |
-| OpenWrt iscle/xinyooo | `u-boot` and `art` are read-only there. Option without opening the case: `kmod-mtd-rw` and `insmod mtd-rw i_want_a_brick=1` (not tested). Reliable option: boot the initramfs from this repository over TFTP for the calibration, the bootloader over [UART](recovery-uart.md) |
+| OpenWrt iscle/xinyooo | `u-boot` and `art` are read-only there. Option without opening the case: `kmod-mtd-rw` and `insmod mtd-rw i_want_a_brick=1` (not tested). Reliable option: boot the initramfs from this repository over TFTP for the calibration, the bootloader over [UART](recovery-uart.md). To move to this image you do not need the bootloader step at all: `sysupgrade -n` is enough ([README](../../README.md#from-xinyooo-or-iscle-openwrt)) |
 | Xiaomi stock firmware | the bootloader and calibration partitions are writable on stock (tested), so this case does not occur. If they still show `READ-ONLY`, use [UART](recovery-uart.md), then step 5 of this guide |
 
 ## If something goes wrong

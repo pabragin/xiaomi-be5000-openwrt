@@ -1,57 +1,88 @@
 #!/bin/sh
-# One-command install from the PC: NAND check, full backup, Wi-Fi calibration,
-# bootloader. Asks for the router password once and asks YES before writing.
+# One-command install from the PC: image download, flash check, full backup,
+# Wi-Fi calibration, bootloader. Asks for the router password once and asks
+# YES before writing anything.
 #   sh install.sh [root@192.168.31.1]
+# Needs ssh and curl on the PC. Works with any scp/sftp-less router.
 set -eu
 
 R=${1:-root@192.168.31.1}
 cd "$(dirname "$0")"
 BL=firmware/bootloader/be5000-bootloader-w25n01kv.bin
+IMG=openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin
+REL=https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest/download
 OUT=be5000-backup-$(date +%Y%m%d-%H%M%S)
 CTL=${TMPDIR:-/tmp}/be5000-ssh-$$
 export SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ControlMaster=auto -o ControlPath=$CTL -o ControlPersist=600"
 SSH="ssh $SSH_OPTS"
-SCP="scp -O $SSH_OPTS"
 
 step() { printf '\n=== %s\n' "$*"; }
-fail() { printf '\nSTOP: %s\nNo harm done: the router is untouched unless stated otherwise.\n' "$*" >&2; exit 1; }
+fail() { printf '\nSTOP: %s\n' "$*" >&2; exit 1; }
+upload() { $SSH "$R" "cat > /tmp/$(basename "$1")" < "$1"; }   # no scp: works without sftp
+sha256() { if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$1"; else sha256sum "$1"; fi | cut -d' ' -f1; }
 trap 'ssh $SSH_OPTS -O exit "$R" 2>/dev/null || true' EXIT
 
-step "1/5 Connecting to $R (enter the router password once)"
+step "1/6 OpenWrt image from the latest release"
+mkdir -p firmware/openwrt
+[ -f "firmware/openwrt/$IMG" ] || curl -fL --progress-bar -o "firmware/openwrt/$IMG" "$REL/$IMG" \
+	|| fail "download failed. Get $IMG from https://github.com/pabragin/xiaomi-be5000-openwrt/releases into firmware/openwrt/ and run again"
+if curl -fsL -o firmware/openwrt/SHA256SUMS "$REL/SHA256SUMS"; then
+	want=$(grep " $IMG\$" firmware/openwrt/SHA256SUMS | cut -d' ' -f1)
+	[ "$(sha256 "firmware/openwrt/$IMG")" = "$want" ] || fail "firmware/openwrt/$IMG does not match SHA256SUMS: delete it and run again"
+	echo "firmware/openwrt/$IMG: checksum OK"
+else
+	echo "could not download SHA256SUMS, skipping the checksum"
+fi
+
+step "2/6 Connecting to $R (enter the router password once)"
 $SSH "$R" true || fail "could not SSH into $R. Check the address and password: sh install.sh root@ADDRESS"
-$SCP scripts/router/be5000-install.sh "$BL" "$R:/tmp/" >/dev/null
+upload scripts/router/be5000-install.sh
+upload "$BL"
 
-step "2/5 Checking the flash chip"
-$SSH "$R" sh /tmp/be5000-install.sh nand | tee "/tmp/be5000-nand-$$.txt"
-grep -q SUPPORTED: "/tmp/be5000-nand-$$.txt" && ! grep -q 'NOT SUPPORTED' "/tmp/be5000-nand-$$.txt" \
-	|| fail "the bootloader does not support your flash chip, or the chip was not detected. Open an issue with the output above"
-rm -f "/tmp/be5000-nand-$$.txt"
+step "3/6 Checking the flash chip and the partitions"
+mkdir -p "$OUT"
+C=$OUT/be5000-check.txt
+$SSH "$R" sh /tmp/be5000-install.sh check | tee "$C"
+if grep -q 'NOT SUPPORTED' "$C"; then
+	fail "the bootloader does not support your flash chip; writing it would brick the router. Open an issue with $C"
+fi
+if ! grep -q ' SUPPORTED:' "$C"; then
+	[ "${BE5000_NAND_OK:-}" = 1 ] || fail "the flash chip was not identified. Read the marking on the chip, check it with scripts/pc/be5000-check-bootloader.py (see docs/en/install-ssh.md), then run: BE5000_NAND_OK=1 sh install.sh $R"
+fi
+if grep -q 'Detected flash layout: unknown' "$C"; then
+	fail "unknown flash layout. Open an issue with $C"
+fi
+if grep -q 'bootloader partition:.*READ-ONLY' "$C"; then
+	fail "this system cannot write the bootloader (partition read-only). On OpenWrt xinyooo/iscle you do not need it: install the image with sysupgrade -n (see README). Otherwise see docs/en/install-ssh.md, READ-ONLY"
+fi
+if grep -q 'calibration block.*has data' "$C"; then
+	fail "block 0xA0000 holds unknown data and the script never erases it. Open an issue with $C"
+fi
 
-step "3/5 Backing up the whole flash to $OUT (a few minutes)"
+step "4/6 Backing up the whole flash to $OUT (a few minutes)"
 sh scripts/pc/be5000-backup.sh "$R" "$OUT" || fail "backup verification failed, run it again"
 
 echo
 echo "Next step writes to flash. Backup: $(pwd)/$OUT - keep it somewhere safe."
 printf 'Type YES and press Enter to continue: '
 read -r ans
-[ "$ans" = YES ] || fail "cancelled"
+[ "$ans" = YES ] || fail "cancelled, nothing was written"
 
-step "4/5 Wi-Fi calibration"
+step "5/6 Wi-Fi calibration"
 $SSH "$R" sh /tmp/be5000-install.sh calibration || fail "calibration was not written. The bootloader is untouched, the router works as before"
 
-step "5/5 Bootloader (do not power off!)"
-$SSH "$R" sh /tmp/be5000-install.sh bootloader "/tmp/$(basename "$BL")" \
-	|| fail "bootloader was not written. Do NOT reboot the router; open an issue with the output above"
-$SCP "$R:/tmp/be5000-mtd*-old-bootloader.bin" "$OUT/" >/dev/null 2>&1 || true
+step "6/6 Bootloader (do not power off!)"
+$SSH "$R" "BE5000_NAND_OK=${BE5000_NAND_OK:-} sh /tmp/be5000-install.sh bootloader /tmp/$(basename "$BL")" \
+	|| fail "bootloader step failed. If the output above mentions 'mtd write' or 'written', do NOT reboot the router and open an issue; otherwise nothing was written"
+$SSH "$R" 'cat /tmp/be5000-mtd*-old-bootloader.bin' > "$OUT/old-bootloader.bin" 2>/dev/null || true
 $SSH "$R" reboot || true
 
-cat <<EOF
+cat <<EOT
 
 Done, the router is rebooting. Now flash the firmware from a browser:
-  1. Connect the PC by cable to a LAN port of the router (not the 2.5G port).
-  2. Set a static address on the PC: IP 192.168.1.10, netmask 255.255.255.0.
-  3. After a minute, open http://192.168.1.1
-  4. Choose the file $(pwd)/firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin,
+  1. Set a static address on the PC's wired adapter: IP 192.168.1.10, netmask 255.255.255.0.
+  2. After a minute, open http://192.168.1.1
+  3. Choose the file $(pwd)/firmware/openwrt/$IMG,
      click Upload, then Proceed. Wait 5 minutes, do not power off.
-  5. Switch the PC back to automatic addressing (DHCP) and open http://192.168.1.1 again.
-EOF
+  4. Switch the PC back to automatic addressing (DHCP) and open http://192.168.1.1 again.
+EOT
