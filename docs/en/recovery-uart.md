@@ -1,6 +1,6 @@
 # Bootloader recovery over UART
 
-[← README](../../README.en.md) · [Русский](../ru/recovery-uart.md)
+[← README](../../README.md) · [Русский](../ru/recovery-uart.md)
 
 > [!IMPORTANT]
 > **TL;DR.** No programmer is needed. The SoC BootROM can receive code over UART if **GPIO0 is shorted to GND** at power-on. The `be5000-uart-recover.py` script sends BL2 and then the bootloader in about 2 minutes, and BL2 writes the bootloader to flash itself.

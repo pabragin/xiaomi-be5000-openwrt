@@ -1,6 +1,6 @@
 # Восстановление загрузчика по UART
 
-[← README](../../README.md) · [English](../en/recovery-uart.md)
+[← README](../../README.ru.md) · [English](../en/recovery-uart.md)
 
 > [!IMPORTANT]
 > **Коротко.** Программатор не нужен. BootROM в SoC умеет принимать код по UART, если при включении замкнуть **GPIO0 на GND**. Скрипт `be5000-uart-recover.py` за ~2 минуты отправит BL2, потом загрузчик, и BL2 сам запишет его во флеш.

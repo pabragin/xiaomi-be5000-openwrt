@@ -1,6 +1,6 @@
 # Installing OpenWrt over SSH
 
-[← README](../../README.en.md) · [Русский](../ru/install-ssh.md)
+[← README](../../README.md) · [Русский](../ru/install-ssh.md)
 
 > [!IMPORTANT]
 > **TL;DR.** Five steps: check → backup → calibration → bootloader → firmware via web failsafe. The script verifies every write by reading it back. No step requires knowing which U-Boot is installed now. [`install.sh`](../../install.sh) runs steps 1–4 in one command; this page lists them one by one.

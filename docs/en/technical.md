@@ -1,6 +1,6 @@
 # How it works
 
-[← README](../../README.en.md) · [Русский](../ru/technical.md)
+[← README](../../README.md) · [Русский](../ru/technical.md)
 
 > [!IMPORTANT]
 > **TL;DR.** The AN7563 boots through the chain BootROM → BL2 → BL31 → U-Boot. BL2 reads NAND itself using a built-in chip table: no chip, `panic()`. For recovery, both BootROM and BL2 support XMODEM, but each accepts its own format.

@@ -1,6 +1,6 @@
 # Как это устроено
 
-[← README](../../README.md) · [English](../en/technical.md)
+[← README](../../README.ru.md) · [English](../en/technical.md)
 
 > [!IMPORTANT]
 > **Коротко.** AN7563 грузится цепочкой BootROM → BL2 → BL31 → U-Boot. BL2 сам читает NAND по встроенной таблице чипов: нет чипа — `panic()`. Для восстановления BootROM и BL2 умеют XMODEM, но каждый принимает свой формат.
