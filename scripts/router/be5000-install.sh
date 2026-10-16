@@ -137,6 +137,8 @@ cmd_nand() {
 		key=$(echo "$key" | sed 's/^MX35LF/MXIC35LF/')
 		NAND_VERDICT=no
 		for c in $BL2_CHIPS; do case "$key" in "$c"|"$c"*) NAND_VERDICT=yes ;; esac; done
+		# 1.8 V Winbond parts (W25N01GW, W25N01KW, ...) share the prefix of the 3.3 V ones
+		case "$key" in W25[NM]0[0-9][GK]W*) NAND_VERDICT=no ;; esac
 	fi
 	case "$NAND_VERDICT" in
 		yes) echo "  SUPPORTED: the BL2 of be5000-bootloader-w25n01kv.bin knows $chip";;
@@ -198,6 +200,7 @@ make_calibration() { # factory_file output_file
 	[ "$(hex2 "$1" 2)" = "9279" ] || die "no MT7992 EEPROM signature (92 79) in $1"
 	mac=$(hex2 "$1" 6 4)
 	case "$mac" in 000000000000|ffffffffffff) die "invalid base MAC in EEPROM";; esac
+	[ $((0x${mac%??????????} & 1)) -eq 0 ] || die "invalid base MAC in EEPROM (multicast)"
 	tail_md5=$(dd if="$1" bs=512 skip=$((EEPROM_SIZE / 512)) 2>/dev/null | md5sum | cut -d' ' -f1)
 	ff_md5=$(dd if=/dev/zero bs=512 count=$(((FACTORY_SIZE - EEPROM_SIZE) / 512)) 2>/dev/null | tr '\000' '\377' | md5sum | cut -d' ' -f1)
 	[ "$tail_md5" = "$ff_md5" ] || die "unexpected data after the EEPROM in Factory - refusing to drop it"
