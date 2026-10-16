@@ -39,10 +39,7 @@ Everything below is tested on a BE5000 running this firmware.
 
 <img src="images/openspeedtest-be5000.png" alt="OpenSpeedTest through the BE5000: 1757 Mbit/s download, 1643 Mbit/s upload" width="320">
 
-**Limitations:**
-- **Wi-Fi is off by default.** After installing, set the country, network name and password.
-- **Old WPA2-TKIP-only devices** (some printers, for example) connect unreliably and reconnect every few seconds.
-- **Download to a single fast client** tops out at about 1.45–1.75 Gbit/s. The limit is the PCIe link between the CPU and the radio (one lane, 5 GT/s).
+**Limitation:** download to a single fast client tops out at about 1.45–1.75 Gbit/s. The limit is the PCIe link between the CPU and the radio (one lane, 5 GT/s).
 
 > [!WARNING]
 > Installing overwrites the factory `bdata` and `Factory` partitions. You can return to the Xiaomi firmware only from the full backup the installer makes in step 1.
