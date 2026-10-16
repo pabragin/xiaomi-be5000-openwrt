@@ -12,7 +12,7 @@
 
 1. [What you get](#1-what-you-get)
 2. [Requirements](#2-requirements)
-3. [Install over SSH](#3-install-over-ssh) → details: [docs/en/install-ssh.md](docs/en/install-ssh.md)
+3. [Install](#3-install) → details: [docs/en/install-ssh.md](docs/en/install-ssh.md)
 4. [If the bootloader is broken: UART](#4-if-the-bootloader-is-broken-uart) → details: [docs/en/recovery-uart.md](docs/en/recovery-uart.md)
 5. [Files](#5-files)
 6. [How it works](#6-how-it-works) → details: [docs/en/technical.md](docs/en/technical.md)
@@ -36,43 +36,39 @@
 
 ## 2. Requirements
 
-- **Root over SSH** on the router. It does not matter what runs now: Xiaomi stock firmware, OpenWrt xinyooo/iscle or X-WRT. You do not need to know which U-Boot is installed; the script detects the flash layout itself.
-- **PC** with `ssh`, `scp`, `python3` (macOS or Linux; on Windows use WSL).
-- **Network cable** from the PC to a LAN port of the router.
-- **Just in case:** a 3.3 V USB-UART adapter. If a write is interrupted, the router cannot be recovered without it.
+- **A router you can reach over SSH** (root and its password). It does not matter what runs on it: Xiaomi stock firmware, OpenWrt xinyooo/iscle or X-WRT.
+- **A computer** with macOS or Linux (on Windows use WSL) and **a network cable** to the router.
 
-## 3. Install over SSH
+> [!WARNING]
+> On W25N01KV flash, firmware that keeps settings in JFFS2 stops booting normally after the first settings change: the next boot comes up read-only with no network ([issue #1](../../issues/1)). This applies to the image in `firmware/openwrt/`. A build with settings in UBI is being tested.
+
+## 3. Install
+
+**Step 1. One command on the computer.** Get the repository and run the installer with the router's address:
 
 ```sh
 git clone https://github.com/pabragin/xiaomi-be5000-openwrt && cd xiaomi-be5000-openwrt
-R=root@192.168.31.1          # current router address (Xiaomi stock is usually 192.168.31.1)
+sh install.sh root@192.168.31.1        # 192.168.31.1 is the Xiaomi stock address; on OpenWrt usually 192.168.1.1
 ```
 
-1. **Check.** No writes, only a report: flash layout, whether partitions are writable, and **whether the bootloader supports your NAND chip** (must be `SUPPORTED`).
-   ```sh
-   scp -O scripts/router/be5000-install.sh $R:/tmp/
-   ssh $R sh /tmp/be5000-install.sh check     # everything at once
-   ssh $R sh /tmp/be5000-install.sh nand      # NAND chip only
-   ```
-   How to identify the chip by hand: [docs/en/install-ssh.md](docs/en/install-ssh.md#does-the-bootloader-support-your-nand-chip).
-2. **Full backup to the PC** (all partitions, SHA-256 check). Keep it safe.
-   ```sh
-   sh scripts/pc/be5000-backup.sh $R
-   ```
-3. **Wi-Fi calibration.** The router takes the EEPROM from its stock Factory partition and writes it to `0xA0000`. If the calibration is already in place, the command just says so.
-   ```sh
-   ssh $R sh /tmp/be5000-install.sh calibration
-   ```
-4. **Bootloader.**
-   ```sh
-   scp -O firmware/bootloader/be5000-bootloader-w25n01kv.bin $R:/tmp/
-   ssh $R sh /tmp/be5000-install.sh bootloader /tmp/be5000-bootloader-w25n01kv.bin
-   ```
-5. **Firmware via web failsafe.** Reboot the router. U-Boot does not find OpenWrt and opens the recovery page. Set the PC address to `192.168.1.10/24`, open `http://192.168.1.1`, upload [`openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`](firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin) and click **Proceed**.
-6. **First login:** `ssh root@192.168.1.1`, then `passwd`, then set up Wi-Fi (country, network, password).
+The script asks for the router password once and then:
+1. checks that the bootloader supports your flash chip (if not, it stops without writing anything);
+2. saves a full flash backup to `be5000-backup-<date>` (keep it: without it you cannot go back to Xiaomi firmware);
+3. asks for `YES`, moves the Wi-Fi calibration and writes the bootloader;
+4. reboots the router.
+
+**Step 2. Firmware in the browser.**
+1. Connect the computer by cable to a LAN port of the router (not the 2.5G port).
+2. Set the computer's address manually: IP `192.168.1.10`, mask `255.255.255.0`. On macOS: Settings → Network → (adapter) → Details → TCP/IP → Manually.
+3. Open `http://192.168.1.1`, choose [`firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`](firmware/openwrt/), click **Upload**, then **Proceed**.
+4. Wait 5 minutes and do not cut the power. The router reboots into OpenWrt by itself.
+
+**Step 3. Setup.** Switch the computer back to an automatic address (DHCP), open `http://192.168.1.1`, set a password, then the country, Wi-Fi name and Wi-Fi password.
 
 > [!CAUTION]
-> If `check` shows the bootloader or calibration partition as `READ-ONLY`, it cannot be written from this system. Options are in [docs/en/install-ssh.md](docs/en/install-ssh.md#if-a-partition-is-read-only). The most reliable one is UART.
+> If the power is lost while the bootloader is written, or the router does not show up on the network after step 1, only UART can bring it back (section 4).
+
+Each step separately, the manual flash chip check and the `READ-ONLY` case: [docs/en/install-ssh.md](docs/en/install-ssh.md).
 
 ## 4. If the bootloader is broken: UART
 
@@ -97,6 +93,7 @@ Details, with photos and an error table: [docs/en/recovery-uart.md](docs/en/reco
 | `calibration.bin` (you make it) | MT7992 EEPROM of your router, 128 KB | flash `0xA0000` |
 | [`firmware/openwrt/…-squashfs-sysupgrade.bin`](firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin) | OpenWrt ([iscle](https://github.com/iscle/openwrt/releases/tag/be5000-upstream-ppe-20260925)): FIT kernel + squashfs | `firmware` partition `0xC0000` (web failsafe or `sysupgrade`) |
 | [`firmware/openwrt/…-initramfs-kernel.bin`](firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin) | OpenWrt in RAM for testing and recovery | TFTP → `bootm`, does not touch flash |
+| [`install.sh`](install.sh) | one-command install: check, backup, calibration, bootloader | runs on the computer |
 | [`scripts/router/be5000-install.sh`](scripts/router/be5000-install.sh) | check, write calibration and bootloader with read-back verification | runs on the router |
 | [`scripts/pc/`](scripts/pc/) | backup, calibration, UART recovery, bootloader check | runs on the PC |
 

@@ -5,7 +5,7 @@ set -eu
 
 HOST=${1:-root@192.168.1.1}
 OUT=${2:-be5000-backup-$(date +%Y%m%d-%H%M%S)}
-SSH="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
+SSH="ssh ${SSH_OPTS:--o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR}"
 
 mkdir -p "$OUT"
 $SSH "$HOST" 'cat /proc/mtd' > "$OUT/proc_mtd.txt"

@@ -12,7 +12,7 @@
 
 1. [Что получится](#1-что-получится)
 2. [Что нужно](#2-что-нужно)
-3. [Установка по SSH](#3-установка-по-ssh) → подробно: [docs/ru/install-ssh.md](docs/ru/install-ssh.md)
+3. [Установка](#3-установка) → подробно: [docs/ru/install-ssh.md](docs/ru/install-ssh.md)
 4. [Если загрузчик сломался: UART](#4-если-загрузчик-сломался-uart) → подробно: [docs/ru/recovery-uart.md](docs/ru/recovery-uart.md)
 5. [Файлы](#5-файлы)
 6. [Как это устроено](#6-как-это-устроено) → подробно: [docs/ru/technical.md](docs/ru/technical.md)
@@ -36,43 +36,39 @@
 
 ## 2. Что нужно
 
-- **Root по SSH** на роутере. Неважно, что стоит сейчас: сток Xiaomi, OpenWrt xinyooo/iscle или X-WRT. Какой там U-Boot, знать не нужно, скрипт сам определит разметку.
-- **ПК** с `ssh`, `scp`, `python3` (macOS или Linux; на Windows подойдёт WSL).
-- **Сетевой кабель** от ПК к LAN-порту роутера.
-- **На всякий случай:** USB-UART адаптер 3.3 В. Если запись прервётся, без него роутер не поднять.
+- **Роутер с доступом по SSH** (root и пароль). Неважно, что на нём стоит: сток Xiaomi, OpenWrt xinyooo/iscle или X-WRT.
+- **Компьютер** с macOS или Linux (на Windows — WSL) и **сетевой кабель** до роутера.
 
-## 3. Установка по SSH
+> [!WARNING]
+> На флеше W25N01KV прошивка с настройками в JFFS2 после первого сохранения настроек перестаёт загружаться нормально: при следующей перезагрузке она поднимается только для чтения и без сети ([issue #1](../../issues/1)). Это относится к образу в `firmware/openwrt/`. Сборка с настройками в UBI проверяется.
+
+## 3. Установка
+
+**Шаг 1. Одна команда на компьютере.** Скачайте репозиторий и запустите установщик с адресом роутера:
 
 ```sh
 git clone https://github.com/pabragin/xiaomi-be5000-openwrt && cd xiaomi-be5000-openwrt
-R=root@192.168.31.1          # адрес роутера сейчас (у стока Xiaomi обычно 192.168.31.1)
+sh install.sh root@192.168.31.1        # 192.168.31.1 — адрес стока Xiaomi; на OpenWrt обычно 192.168.1.1
 ```
 
-1. **Проверка.** Записи нет, только отчёт: разметка, доступны ли разделы на запись и **подходит ли загрузчик к вашему чипу NAND** (должно быть `SUPPORTED`).
-   ```sh
-   scp -O scripts/router/be5000-install.sh $R:/tmp/
-   ssh $R sh /tmp/be5000-install.sh check     # всё сразу
-   ssh $R sh /tmp/be5000-install.sh nand      # только чип NAND
-   ```
-   Как определить чип вручную: [docs/ru/install-ssh.md](docs/ru/install-ssh.md#подходит-ли-загрузчик-к-вашему-чипу-nand).
-2. **Полный бэкап на ПК** (все разделы, сверка SHA-256). Сохраните его надёжно.
-   ```sh
-   sh scripts/pc/be5000-backup.sh $R
-   ```
-3. **Калибровка Wi-Fi.** Роутер сам возьмёт EEPROM из заводского раздела Factory и запишет его в `0xA0000`. Если калибровка уже на месте, команда просто это сообщит.
-   ```sh
-   ssh $R sh /tmp/be5000-install.sh calibration
-   ```
-4. **Загрузчик.**
-   ```sh
-   scp -O firmware/bootloader/be5000-bootloader-w25n01kv.bin $R:/tmp/
-   ssh $R sh /tmp/be5000-install.sh bootloader /tmp/be5000-bootloader-w25n01kv.bin
-   ```
-5. **Прошивка через веб-failsafe.** Перезагрузите роутер. U-Boot не найдёт OpenWrt и откроет страницу восстановления. Задайте ПК адрес `192.168.1.10/24`, откройте `http://192.168.1.1`, загрузите [`openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`](firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin) и нажмите **Proceed**.
-6. **Первый вход:** `ssh root@192.168.1.1`, затем `passwd`, после этого настройте Wi-Fi (страна, сеть, пароль).
+Скрипт один раз спросит пароль роутера и сам:
+1. проверит, подходит ли загрузчик к чипу памяти (если нет, остановится, ничего не записав);
+2. сохранит полный бэкап флеша в папку `be5000-backup-<дата>` (её нужно сохранить: без неё прошивку Xiaomi не вернуть);
+3. спросит `YES`, перенесёт калибровку Wi-Fi и запишет загрузчик;
+4. перезагрузит роутер.
+
+**Шаг 2. Прошивка через браузер.**
+1. Подключите компьютер кабелем к порту LAN роутера (не к порту 2.5G).
+2. Задайте компьютеру адрес вручную: IP `192.168.1.10`, маска `255.255.255.0`. На macOS: «Настройки → Сеть → (адаптер) → Подробнее → TCP/IP → Вручную».
+3. Откройте `http://192.168.1.1`, выберите файл [`firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`](firmware/openwrt/), нажмите **Upload**, затем **Proceed**.
+4. Подождите 5 минут и не выключайте питание. Роутер сам перезагрузится в OpenWrt.
+
+**Шаг 3. Настройка.** Верните компьютеру автоматический адрес (DHCP), откройте `http://192.168.1.1`, задайте пароль, затем страну, имя и пароль Wi-Fi.
 
 > [!CAUTION]
-> Если `check` показывает, что раздел загрузчика или калибровки `READ-ONLY`, из этой системы их не записать. Варианты описаны в [docs/ru/install-ssh.md](docs/ru/install-ssh.md#если-раздел-read-only). Самый надёжный — UART.
+> Если во время записи загрузчика пропало питание или после шага 1 роутер не появляется в сети, поднять его можно только по UART (раздел 4).
+
+Каждый шаг по отдельности, ручная проверка чипа и случай `READ-ONLY`: [docs/ru/install-ssh.md](docs/ru/install-ssh.md).
 
 ## 4. Если загрузчик сломался: UART
 
@@ -97,6 +93,7 @@ R=root@192.168.31.1          # адрес роутера сейчас (у сто
 | `calibration.bin` (делаете сами) | EEPROM MT7992 вашего роутера, 128 КБ | флеш `0xA0000` |
 | [`firmware/openwrt/…-squashfs-sysupgrade.bin`](firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin) | OpenWrt ([iscle](https://github.com/iscle/openwrt/releases/tag/be5000-upstream-ppe-20260925)): ядро FIT + squashfs | раздел `firmware` `0xC0000` (веб-failsafe или `sysupgrade`) |
 | [`firmware/openwrt/…-initramfs-kernel.bin`](firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin) | OpenWrt в RAM для проверки и восстановления | TFTP → `bootm`, флеш не трогает |
+| [`install.sh`](install.sh) | установка одной командой: проверка, бэкап, калибровка, загрузчик | запускается на компьютере |
 | [`scripts/router/be5000-install.sh`](scripts/router/be5000-install.sh) | проверка, запись калибровки и загрузчика с проверкой чтением | запускается на роутере |
 | [`scripts/pc/`](scripts/pc/) | бэкап, калибровка, UART-восстановление, проверка загрузчика | запускается на ПК |
 
