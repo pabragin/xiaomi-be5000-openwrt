@@ -5,7 +5,7 @@ Build of OpenWrt `main` (`r36539+833-98bc30d154`, Linux 6.18.55) with [iscle](ht
 | File | Size | Use |
 |---|---|---|
 | `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` | 11272464 | Install: upload in the U-Boot web failsafe (`http://192.168.1.1`) or `sysupgrade` from OpenWrt. Raw image of the `firmware` partition: FIT kernel + squashfs |
-| `openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin` | 10909812 | RAM-only system for recovery and tests: `tftpboot 0x84000000 …; bootm 0x84000000` in U-Boot. Does not touch flash |
+| `openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin` | 10913548 | RAM-only system for recovery and tests: `tftpboot 0x84000000 …; bootm 0x84000000` in U-Boot. Does not touch flash |
 
 Checksums: [`SHA256SUMS`](SHA256SUMS).
 
@@ -23,6 +23,7 @@ Checksums: [`SHA256SUMS`](SHA256SUMS).
 ## Differences from iscle's builds
 
 - **Settings in UBI** instead of JFFS2 (see above).
+- **PCIe at 5 GT/s:** the AN7563 root ports train at 2.5 GT/s and stay there; the kernel retrains both links to 5 GT/s, as the Xiaomi stock kernel does (`mt7512_pcie_rc0/rc1_retrain`). At 2.5 GT/s x1 the Wi-Fi TX DMA capped downloads at about 1 Gbit/s; with 5 GT/s a 2x2 160 MHz client downloads ~1.45 Gbit/s.
 - **Reboot:** the Wi-Fi chip, QDMA and NPU are stopped on shutdown, so a warm reboot does not loop.
 - **Watchdog:** the hardware watchdog works (`airoha,en7523-wdt`).
 - **NPU:** fixes for encrypted A-MSDU and a faster receive path in the NPU firmware.

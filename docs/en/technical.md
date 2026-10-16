@@ -14,7 +14,8 @@
 5. [XMODEM recovery](#xmodem-recovery)
 6. [Wi-Fi calibration](#wi-fi-calibration)
 7. [OpenWrt image](#openwrt-image)
-8. [Supported NAND chips](#supported-nand-chips)
+8. [PCIe](#pcie)
+9. [Supported NAND chips](#supported-nand-chips)
 
 ## Hardware
 
@@ -115,6 +116,19 @@ Without calibration, `dmesg` shows `mt7996e … eeprom load fail, use default bi
 U-Boot reads the first `fitsize = 0x500000` bytes of the partition and runs `bootm`. The web failsafe writes the uploaded file to the `firmware` partition as is.
 
 Settings are not in `firmware` but in a separate `ubi` partition (`0x18C0000`, 40 MiB), volume `rootfs_data` (UBIFS). JFFS2 does not work on W25N01KV: it programs page 0 of a block twice (cleanmarker in OOB, then data), and the chip's on-die ECC corrupts such a page ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)).
+
+## PCIe
+
+The MT7992 radio is attached over two PCIe links: `0000:01:00.0` (main) and `0001:01:00.0` (second interface). The AN7563 root ports have one lane each and up to 5 GT/s; the radio supports 8 GT/s.
+
+- **Problem:** after power-up the links train at 2.5 GT/s and never move up. For downloads the radio reads every packet from the router's memory over PCIe, so at 2.5 GT/s x1 downloads were capped at about 1 Gbit/s.
+- **Fix:** the kernel retrains both links to 5 GT/s right after link up. The Xiaomi stock kernel does the same (`mt7512_pcie_rc0_retrain`, `mt7512_pcie_rc1_retrain`).
+- **Check:** `cat /sys/bus/pci/devices/0000:01:00.0/current_link_speed` → `5.0 GT/s PCIe`; `dmesg` shows `link retrained to 5.0 GT/s PCIe` for both ports.
+
+| PCIe | Download (2x2 160 MHz client) |
+|---|---|
+| 2.5 GT/s x1 | ~1.05 Gbit/s |
+| 5 GT/s x1 | ~1.45 Gbit/s |
 
 ## Supported NAND chips
 
