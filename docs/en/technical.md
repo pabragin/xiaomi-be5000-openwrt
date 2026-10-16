@@ -29,7 +29,7 @@
 
 ## Flash layout
 
-![Flash layout](../../images/flash-layout.svg)
+![Flash layout](../../images/flash-layout.en.svg)
 
 | Offset | Xiaomi stock firmware | After install | Size |
 |---|---|---|---|

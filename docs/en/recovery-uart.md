@@ -32,7 +32,7 @@
 
 ## UART wiring
 
-![UART wiring](../../images/uart-wiring.svg)
+![UART wiring](../../images/uart-wiring.en.svg)
 
 1. Adapter GND → router GND.
 2. Adapter TX → router RX, adapter RX → router TX.
@@ -56,7 +56,7 @@ Short GPIO0 to **GND**, for example to the shield frame next to it. Sign that th
 
 ## Recovery
 
-![Boot chain](../../images/boot-chain.svg)
+![Boot chain](../../images/boot-chain.en.svg)
 
 1. Unplug the router from the wall socket.
 2. Start the script. It waits up to 15 minutes:

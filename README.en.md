@@ -30,7 +30,7 @@
 | Ports | `lan1`–`lan3` (1 Gbit, DSA) and `eth1` (2.5 Gbit), all in `br-lan` |
 | Wi-Fi | 2.4 + 5 GHz, off by default |
 
-![Flash layout](images/flash-layout.svg)
+![Flash layout](images/flash-layout.en.svg)
 
 > [!WARNING]
 > The new flash layout overwrites the factory `bdata` and `Factory` partitions. You can return to the Xiaomi firmware only from the full backup you make in step 2.
@@ -75,10 +75,10 @@ Each step separately, the manual flash chip check and the `READ-ONLY` case: [doc
 
 Symptoms: no network activity, `PANIC at PC : 0x810017a9` in the UART log, or any stop before U-Boot.
 
-![Boot chain](images/boot-chain.svg)
+![Boot chain](images/boot-chain.en.svg)
 
 1. Connect USB-UART: GND–GND, TX↔RX, **do not connect VCC**, 115200 8N1.
-   ![Wiring](images/uart-wiring.svg)
+   ![Wiring](images/uart-wiring.en.svg)
 2. Run `python3 scripts/pc/be5000-uart-recover.py /dev/ttyUSB0`.
 3. Short **GPIO0 to GND**, hold it and power on. Where the pad is: see the [photo](docs/en/recovery-uart.md#where-gpio0-is).
 4. The script runs both XMODEM stages and writes the bootloader. Then release GPIO0.
