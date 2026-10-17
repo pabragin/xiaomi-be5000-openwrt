@@ -59,7 +59,7 @@ ssh $R sh /tmp/be5000-install.sh check
   mtd4  kernel         off=0x00000000 size=0x003c0000 rw (inside firmware)
   mtd5  rootfs         off=0x003c0000 size=0x01440000 rw (inside firmware)
   mtd6  rootfs_data    off=0x00ac0000 size=0x00d40000 rw (inside firmware)
-  mtd7  ubi            off=0x018c0000 size=0x02800000 rw
+  mtd7  ubi-data       off=0x018c0000 size=0x05d20000 rw
 >>> Kernel log:
   [    1.297809] spi-nand spi0.0: Winbond SPI NAND was found.
   [    1.303181] spi-nand spi0.0: 128 MiB, block size: 128 KiB, page size: 2048, OOB size: 96
@@ -178,8 +178,8 @@ ssh $R cat /tmp/be5000-mtd0-old-bootloader.bin > be5000-backup-<дата>/old-bo
 2. U-Boot попробует загрузить OpenWrt из раздела `firmware`. Там пока данные стока, поэтому загрузка не пройдёт, и через пару секунд поднимется страница восстановления.
 3. Подключите ПК кабелем к LAN-порту и задайте ему адрес вручную: `192.168.1.10`, маска `255.255.255.0`.
 4. Откройте `http://192.168.1.1`, выберите образ из шага 0 (`firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`), нажмите **Upload**.
-5. На странице подтверждения сверьте, что размер совпадает с загруженным файлом, и нажмите **Proceed**. U-Boot стирает свой раздел `firmware` (64 МБ, вместе с разделом настроек `ubi`) и записывает образ. Это занимает **3–5 минут**: страница может перестать отвечать, питание не выключайте. Потом роутер сам перезагрузится в OpenWrt.
-6. На первой загрузке OpenWrt создаёт в разделе `ubi` том `rootfs_data` для настроек. В логе будет `- creating rootfs_data UBI volume -` и `mount_root: switching to ubifs overlay`.
+5. На странице подтверждения сверьте, что размер совпадает с загруженным файлом, и нажмите **Proceed**. U-Boot стирает свой раздел `firmware` (64 МБ, вместе с началом раздела настроек `ubi-data`) и записывает образ. Это занимает **3–5 минут**: страница может перестать отвечать, питание не выключайте. Потом роутер сам перезагрузится в OpenWrt.
+6. На первой загрузке OpenWrt форматирует раздел `ubi-data` и создаёт в нём том `rootfs_data` для настроек. В консоли будут `- formatting UBI on mtdN -` и `- creating rootfs_data UBI volume -`, в `dmesg` строки `ubi_rootfs_data:`, затем `mount_root: switching to ubifs overlay`.
 
 > [!TIP]
 > **macOS:** если `192.168.1.1` перестал открываться после перезагрузки роутера, macOS потерял маршрут на этом интерфейсе. Задайте адрес в «Настройки → Сеть → (адаптер) → Подробнее → TCP/IP → Вручную», а не через `ifconfig alias`.
@@ -194,7 +194,7 @@ cat /sys/class/ieee80211/phy0/macaddress   # MAC с наклейки, не сл�
 
 Wi-Fi по умолчанию выключен. В LuCI (`http://192.168.1.1`) задайте страну, имя сети и пароль, затем включите радио.
 
-Обновления дальше ставятся обычным `sysupgrade` из OpenWrt.
+Обновления дальше ставятся обычным `sysupgrade` из OpenWrt, см. [С прошлого релиза этой сборки](../../README.ru.md#с-прошлого-релиза-этой-сборки).
 
 ## Если раздел READ-ONLY
 

@@ -46,8 +46,11 @@
 | `0x580000` | crash, `0x5C0000` crash_log | ↑ | |
 | `0x600000` | kernel (stock) | ↑ | |
 | `0xC00000` | ubi (stock) | ↑ | |
-| `0x18C0000` | ↑ | ubi: `rootfs_data` (settings) | `0x2800000` |
-| `0x40C0000` | ↑ | end of ubi | |
+| `0x18C0000` | ↑ | ubi-data: `rootfs_data` (settings) | `0x5D20000` |
+| `0x2A00000` | tclinux_slave (backup firmware) | ↑ | |
+| `0x4E00000` | overlay (stock settings, UBI) | ↑ | |
+| `0x6E00000` | art (stock, empty) | ↑ | |
+| `0x75E0000` | ↑ | end of ubi-data = end of the logical area | |
 
 Logical addresses are mapped through Airoha BMT: `BMT v1 at block 1023`, `BBT v1 at block 943`, 943 usable blocks.
 
@@ -119,18 +122,21 @@ Without calibration, `dmesg` shows `mt7996e … eeprom load fail, use default bi
 
 U-Boot reads the first `fitsize = 0x500000` bytes of the partition and runs `bootm`. The web failsafe writes the uploaded file to the `firmware` partition as is.
 
-Settings are not in `firmware` but in a separate `ubi` partition (`0x18C0000`, 40 MiB), volume `rootfs_data` (UBIFS); `sysupgrade` writes the FIT into `firmware`, recreates `rootfs_data` and saves the kept settings there. JFFS2 does not work on W25N01KV: it programs page 0 of a block twice (cleanmarker in OOB, then data), and the chip's on-die ECC corrupts such a page ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)).
+Settings are not in `firmware` but in a separate `ubi-data` partition (`0x18C0000` to the end of the logical area, 93 MiB, about 79 MiB in `/overlay`; shorter on a chip with factory bad blocks), volume `rootfs_data` (UBIFS). `sysupgrade` unloads the Wi-Fi driver (which stops the NPU before the reboot), writes the FIT into `firmware`, recreates `rootfs_data` over all free blocks and saves the kept settings there. The kernel does not attach the partition (it would attach one named `ubi` or `data`). Preinit reads the UBI header of every block first (about 4 s at boot): it formats the partition when the old 40 MiB hold no UBI of ours, another UBI image or too many blocks without a UBI header; it erases the part behind the old 40 MiB while none of our blocks are there (the first boot after an upgrade from the 40 MiB layout, when the stock backup firmware and the stock settings UBI still lie there), later only blocks of another UBI image; then it attaches. So the kernel never sees the stock data. Up to the 2026-10-17 image the partition was `ubi`, 40 MiB. JFFS2 does not work on W25N01KV: it programs page 0 of a block twice (cleanmarker in OOB, then data), and the chip's on-die ECC corrupts such a page ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)).
 
 ## What this build changes
 
 Compared to iscle's builds:
 
 - **Settings in UBI** instead of JFFS2 (see above).
-- **PCIe at 5 GT/s:** the AN7563 root ports train at 2.5 GT/s and stay there; the kernel retrains both links to 5 GT/s, as the Xiaomi stock kernel does (`mt7512_pcie_rc0/rc1_retrain`). At 2.5 GT/s x1 the Wi-Fi TX DMA capped downloads at about 1 Gbit/s; with 5 GT/s a 2x2 160 MHz client downloads 1.35–1.5 Gbit/s with 8 HTTP streams and 1757 Mbit/s in OpenSpeedTest.
-- **Upload on both NPU cores:** core 1 parsed every received frame (~5400 cycles) and capped Wi-Fi → Ethernet at ~120k frames/s. Core 0 now reads the RX descriptor, checks security and PN and parses the frame, then hands a 32-byte record to core 1 through a queue in shared SRAM; core 1 queues to the PPE or delivers to Linux. Core 1 load under upload drops from 84% to 31%. A boot probe falls back to single-core mode if the cores do not share the queue memory.
+- **PCIe at 5 GT/s:** the AN7563 root ports train at 2.5 GT/s and stay there; the kernel retrains both links to 5 GT/s, as the Xiaomi stock kernel does (`mt7512_pcie_rc0/rc1_retrain`). At 2.5 GT/s x1 the Wi-Fi TX DMA capped downloads at about 1 Gbit/s; with 5 GT/s a 2x2 160 MHz client downloads 1.35–1.5 Gbit/s with 8 HTTP streams and 1744 Mbit/s in OpenSpeedTest.
+- **Upload on both NPU cores:** core 1 parsed every received frame (~5400 cycles) and capped Wi-Fi → Ethernet at ~120k frames/s. Core 0 now reads the RX descriptor, checks security and PN and parses the frame, then hands a 32-byte record to core 1 through a queue in shared SRAM; core 1 queues to the PPE or delivers to Linux. Under upload core 1 is busy about 40% of the time instead of 84%, core 0 about 74%.
 - **Reboot:** the Wi-Fi chip, QDMA and NPU are stopped on shutdown, so a warm reboot does not loop.
 - **Watchdog:** the hardware watchdog works (`airoha,en7523-wdt`).
-- **NPU:** fixes for encrypted A-MSDU and a faster receive path in the NPU firmware.
+- **NPU:** fixes for encrypted A-MSDU and a faster receive path in the NPU firmware: header words read once, replay-counter cache, one pass over TX completions, a buffer pool for downloads, one loop per core with the hot path out of line and the code laid out per core (14.4 KB). Upload 1737 Mbit/s in OpenSpeedTest.
+- **Thermal:** the AN7563 temperature sensors (diode and BJT, calibrated from eFuse) as `cpu-thermal` and `soc-thermal`; above 105 °C on `cpu-thermal` the CPU frequency is lowered. 63–69 °C under load.
+- **Full wpad:** `wpad-mbedtls` instead of `wpad-basic-mbedtls`.
+- **Sysupgrade:** the Wi-Fi driver is unloaded before the image is written; without that the reboot after a sysupgrade hung in 2 of about 8 upgrades. The image size is checked against the 24 MiB `firmware` partition.
 - **Writable `art`:** the calibration partition is not marked read-only, so `be5000-install.sh calibration` can write the block from OpenWrt, installed or in RAM. Nothing writes there on its own; the script refuses to erase a block that holds data.
 - **Kernel modules:** downloads.openwrt.org has no `airoha/an7563` target, so the build makes every kernel module (`CONFIG_ALL_KMODS`) and publishes them, signed with the build key, on the GitHub Pages of this repository, one directory per kernel version and vermagic hash (`kmods/6.18.55-<hash>/`). On first boot the image points the target feed of `/etc/apk/repositories.d/distfeeds.list` at the directory of its own kernel.
 - **Wi-Fi MAC without calibration:** if `art` has no calibration, the driver uses the MediaTek default EEPROM with the same MAC on every unit. On first boot each radio then gets a random `macaddr_base`, kept in `/etc/config/wireless`.
@@ -146,18 +152,18 @@ The MT7992 radio is attached over two PCIe links: `0000:01:00.0` (main) and `000
 | PCIe | Download (2x2 160 MHz client) |
 |---|---|
 | 2.5 GT/s x1 | ~1.05 Gbit/s |
-| 5 GT/s x1 | 1350–1500 Mbit/s with 8 HTTP streams, 1757 Mbit/s in OpenSpeedTest |
+| 5 GT/s x1 | 1350–1570 Mbit/s with 8 HTTP streams, 1744 Mbit/s in OpenSpeedTest |
 
 ## Speed
 
 OpenSpeedTest from a MacBook (2x2, 160 MHz, about −40 dBm) to a PC on the wired LAN, through the BE5000:
 
-![OpenSpeedTest: 1757 Mbit/s download, 1643 Mbit/s upload](../../images/openspeedtest-be5000.png)
+![OpenSpeedTest: 1744 Mbit/s download, 1737 Mbit/s upload](../../images/openspeedtest-be5000.png)
 
 | Test | Download | Upload |
 |---|---|---|
-| OpenSpeedTest in the browser | 1757 Mbit/s | 1643 Mbit/s |
-| 8 parallel HTTP streams, 5 minutes | 1348 Mbit/s | 1384 Mbit/s |
+| OpenSpeedTest in the browser | 1744 Mbit/s | 1737 Mbit/s |
+| 8 parallel HTTP streams, 15 s, median of 6 runs | 1568 Mbit/s | 1572 Mbit/s |
 
 ## Supported NAND chips
 

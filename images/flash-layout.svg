@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="980" height="430" viewBox="0 0 980 430" font-family="Helvetica, Arial, sans-serif">
   <rect width="980" height="430" fill="#ffffff"/>
-  <text x="20" y="32" font-size="20" font-weight="bold" fill="#111">SPI-NAND 128 MiB: start of flash (0x0 – 0xC00000+)</text>
+  <text x="20" y="32" font-size="20" font-weight="bold" fill="#111">SPI-NAND 128 MiB: flash layout (0x0 – 0x75E0000)</text>
 
   <!-- scale: 0x0..0xC00000 mapped to x=170..960 (790 px) => 1 px = 0x3E40 ~ 16 KiB; use piecewise for readability -->
   <text x="20" y="92" font-size="15" font-weight="bold" fill="#111">Stock</text>
@@ -23,7 +23,7 @@
     <rect x="270" y="210" width="50" height="56" fill="#cfd8dc" stroke="#37474f"/><text x="295" y="234">art</text><text x="295" y="252" fill="#444">blk 1</text>
     <rect x="320" y="210" width="50" height="56" fill="#f8d7da" stroke="#b02a37" stroke-width="2"/><text x="345" y="234" font-weight="bold">CAL</text><text x="345" y="252" fill="#444">0xA0000</text>
     <rect x="370" y="210" width="222" height="56" fill="#cfe2ff" stroke="#0a58ca" stroke-width="2"/><text x="481" y="234" font-weight="bold">firmware: FIT + squashfs</text><text x="481" y="252" fill="#444">0xC0000, 24 MiB</text>
-    <rect x="592" y="210" width="368" height="56" fill="#e0cffc" stroke="#6f42c1" stroke-width="2"/><text x="776" y="234" font-weight="bold">ubi: rootfs_data (UBIFS, settings)</text><text x="776" y="252" fill="#444">0x18C0000, 40 MiB</text>
+    <rect x="592" y="210" width="368" height="56" fill="#e0cffc" stroke="#6f42c1" stroke-width="2"/><text x="776" y="234" font-weight="bold">ubi-data: rootfs_data (UBIFS, settings)</text><text x="776" y="252" fill="#444">0x18C0000, 93 MiB</text>
   </g>
   <text x="267" y="290" font-size="11" fill="#555" text-anchor="middle">u-boot-env 0x7C000 (16 KiB, RO)</text>
 

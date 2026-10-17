@@ -59,7 +59,7 @@ Example (router already on OpenWrt with the new flash layout):
   mtd4  kernel         off=0x00000000 size=0x003c0000 rw (inside firmware)
   mtd5  rootfs         off=0x003c0000 size=0x01440000 rw (inside firmware)
   mtd6  rootfs_data    off=0x00ac0000 size=0x00d40000 rw (inside firmware)
-  mtd7  ubi            off=0x018c0000 size=0x02800000 rw
+  mtd7  ubi-data       off=0x018c0000 size=0x05d20000 rw
 >>> Kernel log:
   [    1.297809] spi-nand spi0.0: Winbond SPI NAND was found.
   [    1.303181] spi-nand spi0.0: 128 MiB, block size: 128 KiB, page size: 2048, OOB size: 96
@@ -178,8 +178,8 @@ The script checks the FIP header of the image, saves the old bootloader to `/tmp
 2. U-Boot tries to boot OpenWrt from the `firmware` partition. It still holds stock data, so the boot fails, and the recovery page comes up in a few seconds.
 3. Connect the PC to a LAN port with a cable and set its address by hand: `192.168.1.10`, netmask `255.255.255.0`.
 4. Open `http://192.168.1.1`, select the image from step 0 (`firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`), click **Upload**.
-5. On the confirmation page check that the size matches the file you uploaded and click **Proceed**. U-Boot erases its `firmware` partition (64 MiB, including the `ubi` settings partition) and writes the image. This takes **3–5 minutes**; the page may stop responding. Do not power off. The router then reboots into OpenWrt.
-6. On the first boot OpenWrt creates the `rootfs_data` volume for settings in the `ubi` partition. The log shows `- creating rootfs_data UBI volume -` and `mount_root: switching to ubifs overlay`.
+5. On the confirmation page check that the size matches the file you uploaded and click **Proceed**. U-Boot erases its `firmware` partition (64 MiB, including the start of the `ubi-data` settings partition) and writes the image. This takes **3–5 minutes**; the page may stop responding. Do not power off. The router then reboots into OpenWrt.
+6. On the first boot OpenWrt formats the `ubi-data` partition and creates the `rootfs_data` volume for settings in it. The console shows `- formatting UBI on mtdN -` and `- creating rootfs_data UBI volume -`, `dmesg` the `ubi_rootfs_data:` lines, then `mount_root: switching to ubifs overlay`.
 
 > [!TIP]
 > **macOS:** if `192.168.1.1` stops opening after the router reboots, macOS has lost the route on that interface. Set the address in "Settings → Network → (adapter) → Details → TCP/IP → Manually", not with `ifconfig alias`.
@@ -194,7 +194,7 @@ cat /sys/class/ieee80211/phy0/macaddress   # MAC from the label, not a random on
 
 Wi-Fi is off by default. In LuCI (`http://192.168.1.1`) set the country, network name and password, then enable the radio.
 
-Further updates are installed with the regular OpenWrt `sysupgrade`.
+Further updates are installed with the regular OpenWrt `sysupgrade`, see [From an earlier release of this build](../../README.md#from-an-earlier-release-of-this-build).
 
 ## If a partition is READ-ONLY
 

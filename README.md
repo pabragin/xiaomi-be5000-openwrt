@@ -5,7 +5,7 @@
 > [!IMPORTANT]
 > **TL;DR.** This repository shows how to install OpenWrt on the Xiaomi BE5000 with only root SSH access, and how to recover the router over UART if the bootloader is broken.
 > - **Three steps:** one command on the computer, one file upload in the browser, Wi-Fi setup. The installer checks the flash chip first: the bootloader here knows 57 NAND chips, including the **Winbond W25N01KV** that the xinyooo and X-WRT bootloaders crash on (`PANIC at PC : 0x810017a9`).
-> - **Wi-Fi speed:** 1757 Mbit/s download and 1643 Mbit/s upload through the BE5000 (OpenSpeedTest, a 2x2 160 MHz MacBook to a wired PC).
+> - **Wi-Fi speed:** 1744 Mbit/s download and 1737 Mbit/s upload through the BE5000 (OpenSpeedTest, a 2x2 160 MHz MacBook to a wired PC).
 > - **Tested on hardware:** BE5000 (AN7563PT, W25N01KV, 512 MB DDR3): SSH install from Xiaomi stock firmware, UART recovery, web failsafe install, cold boot, our own OpenWrt build with settings in UBI, Wi-Fi calibration built from the router's own Factory data.
 
 ## Contents
@@ -26,18 +26,19 @@ Everything below is tested on a BE5000 running this firmware.
 | What | How it works |
 |---|---|
 | **System** | OpenWrt SNAPSHOT `r36539+838`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
-| **5 GHz Wi-Fi** | 3x3, 160 MHz, Wi-Fi 6/7. A 2x2 MacBook (2 streams, 2402 Mbit/s link): **1757 Mbit/s** download, **1643 Mbit/s** upload ([test](docs/en/technical.md#speed)) |
+| **5 GHz Wi-Fi** | 3x3, 160 MHz, Wi-Fi 6/7. A 2x2 MacBook (2 streams, 2402 Mbit/s link): **1744 Mbit/s** download, **1737 Mbit/s** upload ([test](docs/en/technical.md#speed)) |
 | **2.4 GHz Wi-Fi** | 2x2, works, 20/40 MHz |
 | **Hardware offload** | Wi-Fi ↔ wired traffic goes through the PPE and the NPU; the CPU is ~10% busy at full speed |
 | **Roaming** | 802.11r: phones and laptops move seamlessly between the BE5000 and another OpenWrt AP with the same network |
 | **Ports** | three 1 Gbit/s ports and one 2.5 Gbit/s port, all in one network |
-| **Settings** | survive reboots and power cuts, and are kept across firmware upgrades |
+| **Settings** | survive reboots and power cuts, and are kept across firmware upgrades; about 79 MiB free in `/overlay` for settings and packages |
+| **Temperature** | SoC sensors in `/sys/class/thermal` (63–69 °C); the CPU is throttled at 105 °C |
 | **Reboot** | warm and cold reboots without hangs; if the system hangs, the watchdog reboots it after ~30 s |
 | **Management** | LuCI web UI and SSH at `192.168.1.1`, upgrades with `sysupgrade` |
 | **Packages** | `apk add` from the OpenWrt feeds; kernel modules (`kmod-*`, all 1100 of them) from [this build's own feed](https://pabragin.github.io/xiaomi-be5000-openwrt/) |
 | **MAC addresses** | from the router's label, taken from its factory calibration |
 
-<img src="images/openspeedtest-be5000.png" alt="OpenSpeedTest through the BE5000: 1757 Mbit/s download, 1643 Mbit/s upload" width="320">
+<img src="images/openspeedtest-be5000.png" alt="OpenSpeedTest through the BE5000: 1744 Mbit/s download, 1737 Mbit/s upload" width="320">
 
 **Limitation:** download to a single fast client tops out at about 1.35–1.75 Gbit/s. The limit is the PCIe link between the CPU and the radio (one lane, 5 GT/s).
 
@@ -90,6 +91,18 @@ ssh root@192.168.1.1 sysupgrade -n /tmp/sysupgrade.bin
 
 After the reboot the router is at `192.168.1.1`, root without a password, Wi-Fi off: continue with step 3. This path is not tested here yet. Settings are not kept: this image stores them in UBI, not JFFS2, because on W25N01KV flash JFFS2 corrupts writes and the router comes up with no network after a reboot ([issue #1](https://github.com/pabragin/xiaomi-be5000-openwrt/issues/1)).
 
+### From an earlier release of this build
+
+```sh
+curl -LO https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest/download/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin
+ssh root@192.168.1.1 'cat > /tmp/sysupgrade.bin' < openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin
+ssh root@192.168.1.1 sysupgrade /tmp/sysupgrade.bin
+```
+
+Settings are kept. From be5000-openwrt-20261016 or 20261017:
+- **Space.** The settings partition grows from 40 to 93 MiB, but `/overlay` stays at about 31 MiB until the next upgrade: run the same `sysupgrade` once more to get about 79 MiB.
+- **Reboot.** Those releases leave Wi-Fi running while they write the image, and the reboot after it can hang (no LED). Unplug the power and plug it back in: the image and the settings are already written. Running `wifi down` before `sysupgrade`, over a cable, makes this less likely. Newer releases stop Wi-Fi themselves.
+
 ## 4. If the bootloader is broken: UART
 
 Symptoms: no network activity, `PANIC at PC : 0x810017a9` in the UART log, or any stop before U-Boot.
@@ -125,7 +138,7 @@ Checksums and origin of the binaries: [firmware/bootloader/README.md](firmware/b
 | Bootloader (0x0–0x80000) | BL2 with W25N01KV support + BL31 + U-Boot 2026.01 (autoboot, web failsafe at `192.168.1.1`) |
 | Wi-Fi calibration | factory MT7992 EEPROM moved to block `0xA0000` (`art` partition) |
 | Firmware | OpenWrt (our build based on [iscle](https://github.com/iscle/openwrt)) in the `firmware` partition at `0xC0000`, 24 MiB |
-| Settings | `ubi` partition at `0x18C0000`, 40 MiB, `rootfs_data` volume (UBIFS) |
+| Settings | `ubi-data` partition at `0x18C0000`, 93 MiB, `rootfs_data` volume (UBIFS) |
 
 ![Flash layout](images/flash-layout.svg)
 
