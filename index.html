@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Xiaomi BE5000 kernel modules</title>
+<style>
+body{font:16px/1.5 system-ui,sans-serif;max-width:720px;margin:0 auto;padding:24px 16px;color:#1b1f23;background:#fff}
+code,pre{font-family:ui-monospace,Menlo,monospace;font-size:14px}
+pre{background:#f4f6f8;padding:12px;overflow-x:auto;border-radius:6px}
+@media (prefers-color-scheme:dark){body{color:#e6e8ea;background:#14171a}pre{background:#1f2428}a{color:#79b8ff}}
+</style>
+</head>
+<body>
+<h1>Kernel modules for OpenWrt on Xiaomi BE5000</h1>
+<p>apk feed with every kernel module (<code>kmod-*</code>) of the images from
+<a href="https://github.com/pabragin/xiaomi-be5000-openwrt">pabragin/xiaomi-be5000-openwrt</a>.
+downloads.openwrt.org has no <code>airoha/an7563</code> target, so modules for these images come only from here.</p>
+<p>One directory per kernel build: <code>kmods/&lt;kernel version&gt;-&lt;vermagic hash&gt;/</code>.
+Images from the release that published the directory point their target feed at it on first boot, so this works out of the box:</p>
+<pre>apk update
+apk add kmod-wireguard</pre>
+<p>Modules load only into the kernel they were built with. After installing a newer image, use its own directory (the image does that by itself).</p>
+</body>
+</html>
