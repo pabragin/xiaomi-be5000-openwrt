@@ -26,7 +26,7 @@
 | SoC | Airoha AN7563PT (BL2 log shows `AN7552DRAMC V0.4`), 2× Cortex-A7 |
 | DRAM | 512 MB DDR3 (Winbond W634GU6…), 1866 MT/s |
 | NAND | 128 MB SPI-NAND, varies between batches: Winbond **W25N01KV**, ESMT and others |
-| Wi-Fi | MediaTek MT7992 (2.4 + 5 GHz), EEPROM in flash |
+| Wi-Fi | MediaTek MT7992: 2.4 GHz 2x2, 5 GHz 3x3 160 MHz (`iw phy`: EHT max NSS 3), EEPROM in flash |
 | Ethernet | built-in MT7530 switch (3× 1 Gbit) + EN8811H (2.5 Gbit) |
 | UART | 115200 8N1, 3.3 V |
 
