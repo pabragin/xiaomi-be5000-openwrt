@@ -25,7 +25,7 @@ Everything below is tested on a BE5000 running this firmware.
 
 | What | How it works |
 |---|---|
-| **System** | OpenWrt SNAPSHOT `r36539+836`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
+| **System** | OpenWrt SNAPSHOT `r36539+838`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
 | **5 GHz Wi-Fi** | 160 MHz, Wi-Fi 6/7. A 2x2 MacBook: **1757 Mbit/s** download, **1643 Mbit/s** upload ([test](docs/en/technical.md#speed)) |
 | **2.4 GHz Wi-Fi** | works, 20/40 MHz |
 | **Hardware offload** | Wi-Fi ↔ wired traffic goes through the PPE and the NPU; the CPU is ~10% busy at full speed |
@@ -34,6 +34,7 @@ Everything below is tested on a BE5000 running this firmware.
 | **Settings** | survive reboots and power cuts, and are kept across firmware upgrades |
 | **Reboot** | warm and cold reboots without hangs; if the system hangs, the watchdog reboots it after ~30 s |
 | **Management** | LuCI web UI and SSH at `192.168.1.1`, upgrades with `sysupgrade` |
+| **Packages** | `apk add` from the OpenWrt feeds; kernel modules (`kmod-*`, all 1100 of them) from [this build's own feed](https://pabragin.github.io/xiaomi-be5000-openwrt/) |
 | **MAC addresses** | from the router's label, taken from its factory calibration |
 
 <img src="images/openspeedtest-be5000.png" alt="OpenSpeedTest through the BE5000: 1757 Mbit/s download, 1643 Mbit/s upload" width="320">
