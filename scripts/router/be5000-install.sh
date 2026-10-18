@@ -119,6 +119,21 @@ cmd_nand() {
 	ids=$(echo "$log" | tr 'A-F' 'a-f' | grep -oE '(0x)?ef[ :,x0]*a[ae][ :,x0]*21' | head -n 1)
 	chip=unknown
 	case "$ids" in *ae*21) chip=W25N01KV ;; *aa*21) chip=W25N01GV ;; esac
+	# The stock Xiaomi NAND driver prints the JEDEC ID as
+	# "spi_nand_probe: mfr_id=0xc8, dev_id=0x1". Only pairs from the
+	# datasheets are mapped: ESMT and GigaDevice share 0xc8, so the device
+	# ID decides.
+	jedec=$(dmesg 2>/dev/null | tr 'A-F' 'a-f' | grep -oE 'mfr_id=0x[0-9a-f]+, *dev_id=0x[0-9a-f]+' | head -n 1)
+	if [ -n "$jedec" ]; then
+		echo "  JEDEC ID from the kernel log: $jedec"
+		mfr=$(echo "$jedec" | sed 's/.*mfr_id=0x\([0-9a-f]*\).*/\1/')
+		dev=$(echo "$jedec" | sed 's/.*dev_id=0x\([0-9a-f]*\).*/\1/')
+		case "$mfr:$dev" in
+			ef:aa21|ef:aa) chip=W25N01GV; vendor=Winbond ;;
+			ef:ae21|ef:ae) chip=W25N01KV; vendor=Winbond ;;
+			c8:1|c8:01|c8:17f|c8:17f7f) chip=F50L1G41LB; vendor=ESMT ;;
+		esac
+	fi
 	if [ "$chip" = unknown ] && [ "$vendor" = Winbond ] && [ "$page" = 2048 ]; then
 		[ "$oob" = 96 ] && chip=W25N01KV
 		if [ "$oob" = 64 ]; then

@@ -105,7 +105,7 @@ ssh $R sh /tmp/be5000-install.sh nand
 То же вручную, встроенными средствами:
 
 ```sh
-dmesg | grep -iE 'nand|oob|W25N|GD5F|F50L|EM73'   # производитель, размер OOB, иногда модель или JEDEC ID
+dmesg | grep -iE 'nand|oob|mfr_id|W25N|GD5F|F50L|EM73'   # производитель, размер OOB, иногда модель или JEDEC ID
 cat /sys/class/mtd/mtd0/oobsize                    # размер OOB (на стоке Xiaomi бывает неверным)
 cat /sys/class/mtd/mtd0/writesize                  # размер страницы
 ```
@@ -114,7 +114,8 @@ cat /sys/class/mtd/mtd0/writesize                  # размер страниц
 |---|---|---|---|
 | Winbond, страница 2048, **OOB 96** или ID `EF AE 21` | W25N01KV | ✅ | ❌ PANIC |
 | Winbond, страница 2048, **OOB 64** или ID `EF AA 21` | W25N01GV | ✅ | ✅ |
-| ESMT, OOB 64 | F50L1G41LB / EM73… | ✅ если модель есть в [списке](../en/technical.md#supported-nand-chips) (англ.) | ✅ если модель есть в списке |
+| ID `C8 01` (в логе стока: `spi_nand_probe: mfr_id=0xc8, dev_id=0x1`) | F50L1G41LB | ✅ | ✅ |
+| ESMT, OOB 64, другой ID | EM73… и другие | ✅ если модель есть в [списке](../en/technical.md#supported-nand-chips) (англ.) | ✅ если модель есть в списке |
 | не определяется | — | прочитайте маркировку на 8-ногой микросхеме рядом с SoC | — |
 
 > [!NOTE]

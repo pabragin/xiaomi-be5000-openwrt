@@ -105,7 +105,7 @@ The `bootloader` command runs the same check itself and **does not write** if th
 The same by hand, with built-in tools:
 
 ```sh
-dmesg | grep -iE 'nand|oob|W25N|GD5F|F50L|EM73'   # vendor, OOB size, sometimes model or JEDEC ID
+dmesg | grep -iE 'nand|oob|mfr_id|W25N|GD5F|F50L|EM73'   # vendor, OOB size, sometimes model or JEDEC ID
 cat /sys/class/mtd/mtd0/oobsize                    # OOB size (can be wrong on stock Xiaomi)
 cat /sys/class/mtd/mtd0/writesize                  # page size
 ```
@@ -114,7 +114,8 @@ cat /sys/class/mtd/mtd0/writesize                  # page size
 |---|---|---|---|
 | Winbond, page 2048, **OOB 96** or ID `EF AE 21` | W25N01KV | ✅ | ❌ PANIC |
 | Winbond, page 2048, **OOB 64** or ID `EF AA 21` | W25N01GV | ✅ | ✅ |
-| ESMT, OOB 64 | F50L1G41LB / EM73… | ✅ if the model is in the [list](technical.md#supported-nand-chips) | ✅ if the model is in the list |
+| ID `C8 01` (stock log: `spi_nand_probe: mfr_id=0xc8, dev_id=0x1`) | F50L1G41LB | ✅ | ✅ |
+| ESMT, OOB 64, other ID | EM73… and others | ✅ if the model is in the [list](technical.md#supported-nand-chips) | ✅ if the model is in the list |
 | not detected | — | read the marking on the 8-pin chip next to the SoC | — |
 
 > [!NOTE]
