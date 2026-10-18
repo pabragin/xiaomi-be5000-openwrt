@@ -40,7 +40,7 @@ if gh release view "$TAG" >/dev/null 2>&1; then
 	gh release upload "$TAG" --clobber "$STAGE"/*
 else
 	gh release create "$TAG" --title "OpenWrt for BE5000 ($VER)" \
-		--notes "OpenWrt $VER, Linux $KVER. What is inside: firmware/openwrt/README.md. Sources: branch be5000-main of https://github.com/pabragin/openwrt" "$STAGE"/*
+		--notes "OpenWrt $VER, Linux $KVER. What is inside: firmware/openwrt/README.md. Sources: be5000-openwrt-source-patches.tar.gz (patches against OpenWrt main) and diffconfig in this release" "$STAGE"/*
 fi
 rm -rf "$STAGE"
 echo "Release $TAG updated. Now review and commit: git diff README.md README.ru.md firmware/openwrt/README.md"

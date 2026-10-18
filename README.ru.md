@@ -25,7 +25,7 @@
 
 | Что | Как работает |
 |---|---|
-| **Система** | OpenWrt SNAPSHOT `r36539+838`, ядро **Linux 6.18.55** ([подробности сборки](firmware/openwrt/README.md), англ.) |
+| **Система** | OpenWrt SNAPSHOT `r36539+844`, ядро **Linux 6.18.55** ([подробности сборки](firmware/openwrt/README.md), англ.) |
 | **Wi-Fi 5 ГГц** | 3x3, 160 МГц, Wi-Fi 6/7. MacBook 2x2 (2 потока, канал 2402 Мбит/с): скачивание **1744 Мбит/с**, отдача **1737 Мбит/с** ([замер](docs/en/technical.md#speed), англ.) |
 | **Wi-Fi 2,4 ГГц** | 2x2, работает, 20/40 МГц |
 | **Аппаратное ускорение** | трафик Wi-Fi ↔ провод идёт через PPE и NPU, процессор на полной скорости загружен на ~10% |
@@ -155,7 +155,7 @@ ssh root@192.168.1.1 sysupgrade /tmp/sysupgrade.bin
 - [Ansuel/atf-airoha](https://github.com/Ansuel/atf-airoha): исходники BL2, по которым разобран формат XMODEM-восстановления.
 - [Medvedolog, issue #17](https://github.com/Medvedolog/airoha-router-ursusflasher/issues/17): наблюдения BootROM AN7552.
 
-**Лицензии.** Скрипты и документация: MIT ([LICENSE](LICENSE)). U-Boot и OpenWrt: GPL-2.0, исходники в [форке OpenWrt](https://github.com/pabragin/openwrt/tree/be5000-main). BL2 и BL31 внутри загрузчика — бинарники Airoha без опубликованной лицензии, взяты из сборки 100PoR-new. Фото: GPIO0 от 100PoR-new, контакты UART из темы на right.com.cn.
+**Лицензии.** Скрипты и документация: MIT ([LICENSE](LICENSE)). U-Boot и OpenWrt: GPL-2.0, исходники — серия патчей к OpenWrt `main` и `diffconfig` сборки в каждом [релизе](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) (`be5000-openwrt-source-patches.tar.gz`). BL2 и BL31 внутри загрузчика — бинарники Airoha без опубликованной лицензии, взяты из сборки 100PoR-new. Фото: GPIO0 от 100PoR-new, контакты UART из темы на right.com.cn.
 
 ## 8. Обратная связь
 
