@@ -5,7 +5,8 @@
 > [!IMPORTANT]
 > **TL;DR.** This repository shows how to install OpenWrt on the Xiaomi BE5000 with only root SSH access, and how to recover the router over UART if the bootloader is broken.
 > - **Three steps:** one command on the computer, one file upload in the browser, Wi-Fi setup. The installer checks the flash chip first: the bootloader here knows 57 NAND chips, including the **Winbond W25N01KV** that the xinyooo and X-WRT bootloaders crash on (`PANIC at PC : 0x810017a9`).
-> - **Wi-Fi speed:** 1744 Mbit/s download and 1737 Mbit/s upload through the BE5000 (OpenSpeedTest, a 2x2 160 MHz MacBook to a wired PC).
+> - **Wi-Fi speed:** 1897 Mbit/s download and 1778 Mbit/s upload through the BE5000 (OpenSpeedTest, a 2x2 160 MHz MacBook to a wired PC).
+> - **Two images:** a plain one and one with VPN (AmneziaWG 3.1, Xray from the Amnezia fork, zapret, DNS over HTTPS, policy routing, all with LuCI). AmneziaWG on the router itself: 251 Mbit/s download and 236 Mbit/s upload with the NPU turned off.
 > - **Tested on hardware:** BE5000 (AN7563PT, W25N01KV, 512 MB DDR3): SSH install from Xiaomi stock firmware, UART recovery, web failsafe install, cold boot, our own OpenWrt build with settings in UBI, Wi-Fi calibration built from the router's own Factory data.
 
 ## Contents
@@ -25,22 +26,58 @@ Everything below is tested on a BE5000 running this firmware.
 
 | What | How it works |
 |---|---|
-| **System** | OpenWrt SNAPSHOT `r36539+844`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
-| **5 GHz Wi-Fi** | 3x3, 160 MHz, Wi-Fi 6/7. A 2x2 MacBook (2 streams, 2402 Mbit/s link): **1744 Mbit/s** download, **1737 Mbit/s** upload ([test](docs/en/technical.md#speed)) |
+| **System** | OpenWrt SNAPSHOT `r36539+1010`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
+| **5 GHz Wi-Fi** | 3x3, 160 MHz, Wi-Fi 6/7. A 2x2 MacBook (2 streams, 2402 Mbit/s link): **1897 Mbit/s** download, **1778 Mbit/s** upload ([test](docs/en/technical.md#speed)) |
+| **Wi-Fi 7** | WPA3 with GCMP-256 and MLO (2.4 + 5 GHz) also go through the NPU: a Wi-Fi 7 client on WPA3 uploads 1560–1760 Mbit/s |
 | **2.4 GHz Wi-Fi** | 2x2, works, 20/40 MHz |
-| **Hardware offload** | Wi-Fi ↔ wired traffic goes through the PPE and the NPU; the CPU is ~10% busy at full speed |
+| **Hardware offload** | Wi-Fi ↔ wired traffic goes through the PPE and the NPU; the CPU is ~10% busy at full speed. The NPU can be turned off in LuCI when a fast VPN matters more ([details](#npu-offload-and-vpn)) |
+| **VPN** (VPN image) | AmneziaWG 3.1, Xray from the Amnezia fork (VLESS, Reality, xhttp), zapret, https-dns-proxy, pbr; all with LuCI ([details](#two-images)) |
 | **Roaming** | 802.11r: phones and laptops move seamlessly between the BE5000 and another OpenWrt AP with the same network |
 | **Ports** | three 1 Gbit/s ports and one 2.5 Gbit/s port, all in one network |
 | **Settings** | survive reboots and power cuts, and are kept across firmware upgrades; about 79 MiB free in `/overlay` for settings and packages |
 | **Temperature** | SoC sensors in `/sys/class/thermal` (63–69 °C); the CPU is throttled at 105 °C |
-| **Reboot** | warm and cold reboots without hangs; if the system hangs, the watchdog reboots it after ~30 s |
+| **Reboot** | warm and cold reboots without hangs; if the system hangs, the watchdog reboots it after ~30 s. Except the reboot right after `sysupgrade` ([known issues](#known-issues)) |
 | **Management** | LuCI web UI and SSH at `192.168.1.1`, upgrades with `sysupgrade` |
-| **Packages** | `apk add` from the OpenWrt feeds; kernel modules (`kmod-*`, all 1100 of them) from [this build's own feed](https://pabragin.github.io/xiaomi-be5000-openwrt/) |
+| **Packages** | `apk add` from the OpenWrt feeds; kernel modules (`kmod-*`, all 1100 of them) and the packages of the VPN image from [this build's own feed](https://pabragin.github.io/xiaomi-be5000-openwrt/) |
 | **MAC addresses** | from the router's label, taken from its factory calibration |
 
-<img src="images/openspeedtest-be5000.png" alt="OpenSpeedTest through the BE5000: 1744 Mbit/s download, 1737 Mbit/s upload" width="320">
+**Limitation:** download to a single fast client tops out at about 1.9 Gbit/s. The limit is the PCIe link between the CPU and the radio (one lane, 5 GT/s).
 
-**Limitation:** download to a single fast client tops out at about 1.35–1.75 Gbit/s. The limit is the PCIe link between the CPU and the radio (one lane, 5 GT/s).
+### Two images
+
+Every release has two images. Both install the same way, and `sysupgrade` moves between them with the settings kept.
+
+| Release file | What is inside |
+|---|---|
+| `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` | plain: Wi-Fi, NPU offload, LuCI |
+| `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` | VPN: the same plus AmneziaWG 3.1, Xray from the Amnezia fork, zapret, https-dns-proxy (DNS over HTTPS) and pbr (policy routing), all with LuCI |
+
+- **Everything is off in the VPN image.** The packages are installed, but no service runs until it is set up and enabled in LuCI. DNS over HTTPS is off too, because once enabled it takes over the DNS of the whole network.
+- **On the plain image** the same packages install with `apk add` from [this build's feed](https://pabragin.github.io/xiaomi-be5000-openwrt/). As anywhere on OpenWrt, `sysupgrade` keeps the settings but not added packages: install them again after an upgrade and they pick up their settings. The VPN image has them built in.
+
+### NPU offload and VPN
+
+The switch is in LuCI: **Network → NPU acceleration**. The NPU is on by default. A change restarts Wi-Fi for a few seconds.
+
+| What | NPU on | NPU off |
+|---|---|---|
+| Wi-Fi ↔ wired network | up to ~1.9 Gbit/s | ~1.1 Gbit/s |
+| Traffic of the router itself over Wi-Fi (VPN, zapret, services) | ~150 Mbit/s | up to ~900 Mbit/s |
+| AmneziaWG on the router | 18–175 / 11–22 Mbit/s | 251 / 236 Mbit/s |
+
+| NPU on: Wi-Fi ↔ wired | NPU off: through AmneziaWG on the router |
+|---|---|
+| <img src="images/openspeedtest-be5000-npu-on.png" alt="OpenSpeedTest through the BE5000 with the NPU: 1897 Mbit/s download, 1778 Mbit/s upload" width="320"> | <img src="images/openspeedtest-be5000-amneziawg.png" alt="OpenSpeedTest through AmneziaWG on the BE5000 without the NPU: 251 Mbit/s download, 236 Mbit/s upload" width="320"> |
+
+Both: OpenSpeedTest from a 2x2 160 MHz MacBook to a wired PC. On the right the MacBook goes through an AmneziaWG tunnel to a server on the BE5000 itself.
+
+- **When to turn the NPU off:** when Wi-Fi clients reach the internet through a VPN on this router. If the router only forwards traffic, keep it on.
+- **Why the NPU is slow here:** frames addressed to the router itself are copied by the NPU into Linux memory through uncached memory, about 48 thousand cycles per frame. That caps them at ~150 Mbit/s. Without the NPU the plain mt76 driver receives them.
+- **The limit without the NPU** is the CPU: two Cortex-A53 cores in AArch32 mode without NEON, so encryption runs as scalar code only. AmneziaWG keeps the CPU fully busy.
+
+### Known issues
+
+- **The reboot after `sysupgrade`** sometimes hangs: about 1 in 3 with this build. The LED stays off and the router does not reboot by itself. Unplug the power and plug it back in: the image and the settings are already written (checked in the netconsole log). Plain reboots, warm or cold, do not hang. The hang happens after the software reset of the CPU, before the watchdog runs. The cause is still being looked for.
 
 ## 2. Requirements
 
@@ -99,9 +136,16 @@ ssh root@192.168.1.1 'cat > /tmp/sysupgrade.bin' < openwrt-airoha-an7563-xiaomi_
 ssh root@192.168.1.1 sysupgrade /tmp/sysupgrade.bin
 ```
 
-Settings are kept. From be5000-openwrt-20261016 or 20261017:
-- **Space.** The settings partition grows from 40 to 93 MiB, but `/overlay` stays at about 31 MiB until the next upgrade: run the same `sysupgrade` once more to get about 79 MiB.
-- **Reboot.** Those releases leave Wi-Fi running while they write the image, and the reboot after it can hang (no LED). Unplug the power and plug it back in: the image and the settings are already written. Running `wifi down` before `sysupgrade`, over a cable, makes this less likely. Newer releases stop Wi-Fi themselves.
+For the VPN image use the same commands with `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin`. Settings are kept. If the LED does not come back after the reboot, see [known issues](#known-issues).
+
+| Now installed | How to upgrade |
+|---|---|
+| be5000-openwrt-20261018 | straight to the latest release |
+| be5000-openwrt-20261016 or 20261017 | **first** [be5000-openwrt-20261018](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/tag/be5000-openwrt-20261018), **then** the latest release |
+| Xiaomi stock, xinyooo, iscle | straight to the latest release: [install](#3-install) or [`sysupgrade -n`](#from-xinyooo-or-iscle-openwrt) |
+
+> [!WARNING]
+> From 20261016 and 20261017 upgrade only through 20261018. Only that release moves the settings from the old 40 MiB partition to the new 93 MiB one. Newer releases do not move the old layout: they format the settings partition and the settings are lost.
 
 ## 4. If the bootloader is broken: UART
 
@@ -124,6 +168,7 @@ Details, with photos and troubleshooting: [docs/en/recovery-uart.md](docs/en/rec
 | [`firmware/bootloader/be5000-bootloader-w25n01kv.bin`](firmware/bootloader/) | 512 KB bootloader: BL2 (57 NAND chips) + BL31 + U-Boot | flash `0x0` (SSH: `be5000-install.sh bootloader`; UART: XMODEM #2) |
 | [`firmware/bootloader/be5000-uart-bl2-stage1.bin`](firmware/bootloader/) | the same BL2 in a mini FIP | UART only, XMODEM #1 to the BootROM |
 | [`openwrt-…-squashfs-sysupgrade.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | OpenWrt ([about the build](firmware/openwrt/README.md)): FIT kernel + squashfs. In the release, `install.sh` downloads it | `firmware` partition `0xC0000` (web failsafe or `sysupgrade`) |
+| [`openwrt-…-full-squashfs-sysupgrade.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | the same with VPN ([two images](#two-images)) | the same |
 | [`openwrt-…-initramfs-kernel.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | OpenWrt in RAM for testing and recovery. In the release | TFTP → `bootm`, does not touch flash |
 | [`install.sh`](install.sh) | one-command install: check, backup, calibration, bootloader | runs on the computer |
 | [`scripts/router/be5000-install.sh`](scripts/router/be5000-install.sh) | check, write calibration and bootloader with read-back verification | runs on the router |

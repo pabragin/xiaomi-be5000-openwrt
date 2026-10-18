@@ -1,8 +1,9 @@
 #!/bin/sh
 # Publish or update a GitHub release and refresh the version strings in the docs.
 #   sh scripts/maintainer/release.sh <tag> <bin-dir> [patches-dir]
-# <bin-dir>     OpenWrt bin/targets/airoha/an7563: the two BE5000 images,
-#               version.buildinfo and the .manifest
+# <bin-dir>     OpenWrt bin/targets/airoha/an7563: the BE5000 images (plain
+#               sysupgrade and initramfs, VPN sysupgrade), version.buildinfo
+#               and the .manifest
 # <patches-dir> output of `git format-patch` plus a diffconfig file (optional)
 # Images live only in the release, never in git. Commit the doc changes afterwards.
 set -eu
@@ -12,6 +13,7 @@ TAG=$1; BIN=$(cd "$2" && pwd); PATCHES=${3:+$(cd "$3" && pwd)}
 cd "$(dirname "$0")/../.."
 SYS=openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin
 RAM=openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin
+FULL=openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin
 VER=$(cat "$BIN/version.buildinfo")                                     # r36539+836-98bc30d154
 KVER=$(sed -n 's/^kernel - \([0-9][0-9.]*\).*/\1/p' "$BIN"/*.manifest | head -1)
 [ -n "$KVER" ] || { echo "kernel version not found in $BIN/*.manifest" >&2; exit 1; }
@@ -21,8 +23,8 @@ MT76_SED=""
 [ -n "$MT76" ] && MT76_SED="s/mt76 [0-9]{4}-[0-9]{2}-[0-9]{2}/mt76 $MT76/g;"
 
 STAGE=$(mktemp -d)
-cp "$BIN/$SYS" "$BIN/$RAM" "$STAGE/"
-FILES="$SYS $RAM"
+cp "$BIN/$SYS" "$BIN/$RAM" "$BIN/$FULL" "$STAGE/"
+FILES="$SYS $FULL $RAM"
 if [ -n "$PATCHES" ]; then
 	tar czf "$STAGE/be5000-openwrt-source-patches.tar.gz" -C "$(dirname "$PATCHES")" "$(basename "$PATCHES")"
 	FILES="$FILES be5000-openwrt-source-patches.tar.gz"
