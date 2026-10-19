@@ -81,7 +81,7 @@
 
 ## 2. Что нужно
 
-- **Роутер с root-доступом по SSH** на стоковой прошивке Xiaomi. Как получить root на стоке, здесь не описано: см. [тему на форуме OpenWrt](https://forum.openwrt.org/t/xiaomi-be5000-wifi7-router/199438) и [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher). Уже стоит OpenWrt xinyooo/iscle? Нужен только [`sysupgrade -n`](#с-openwrt-xinyooo-или-iscle).
+- **Роутер с root-доступом по SSH** на стоковой прошивке Xiaomi. Как получить root на стоке, здесь не описано: используйте [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher), он знает BE5000; помощь — в [теме на 4PDA](https://4pda.to/forum/index.php?showtopic=1088946). Уже стоит OpenWrt xinyooo/iscle? Нужен только [`sysupgrade -n`](#с-openwrt-xinyooo-или-iscle).
 - **Компьютер** с macOS или Linux (на Windows — WSL): `ssh`, `curl` и `git` (или скачайте репозиторий как ZIP через зелёную кнопку **Code**), и **сетевой кабель** до роутера. `python3` нужен только для восстановления по UART и скрипта проверки загрузчика.
 
 ## 3. Установка

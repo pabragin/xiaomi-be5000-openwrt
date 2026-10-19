@@ -81,7 +81,7 @@ Both: OpenSpeedTest from a 2x2 160 MHz MacBook to a wired PC. On the right the M
 
 ## 2. Requirements
 
-- **A router with root SSH access** on the Xiaomi stock firmware. Getting root on the stock firmware is not covered here: see the [OpenWrt forum thread](https://forum.openwrt.org/t/xiaomi-be5000-wifi7-router/199438) and [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher). Already on OpenWrt xinyooo/iscle? You only need [`sysupgrade -n`](#from-xinyooo-or-iscle-openwrt).
+- **A router with root SSH access** on the Xiaomi stock firmware. Getting root on the stock firmware is not covered here: use [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher), which knows the BE5000 (Russian-language help: the [4PDA thread](https://4pda.to/forum/index.php?showtopic=1088946)). Already on OpenWrt xinyooo/iscle? You only need [`sysupgrade -n`](#from-xinyooo-or-iscle-openwrt).
 - **A computer** with macOS or Linux (on Windows use WSL): `ssh`, `curl` and `git` (or download the repository as a ZIP from the green **Code** button), and **a network cable** to the router. `python3` is needed only for UART recovery and the bootloader check script.
 
 ## 3. Install
