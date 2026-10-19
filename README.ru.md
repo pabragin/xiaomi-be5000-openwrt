@@ -82,7 +82,7 @@
 ## 2. Что нужно
 
 - **Роутер с root-доступом по SSH** на стоковой прошивке Xiaomi. Как получить root на стоке, здесь не описано: используйте [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher), он знает BE5000; помощь — в [теме на 4PDA](https://4pda.to/forum/index.php?showtopic=1088946). Уже стоит OpenWrt xinyooo/iscle? Нужен только [`sysupgrade -n`](#с-openwrt-xinyooo-или-iscle).
-- **Компьютер** с macOS или Linux (на Windows — WSL): `ssh`, `curl` и `git` (или скачайте репозиторий как ZIP через зелёную кнопку **Code**), и **сетевой кабель** до роутера. `python3` нужен только для восстановления по UART и скрипта проверки загрузчика.
+- **Компьютер** с macOS, Linux или Windows (на Windows нужен [Git for Windows](https://git-scm.com/download/win) с Git Bash или WSL): `ssh`, `curl` и `git` (или скачайте репозиторий как ZIP через зелёную кнопку **Code**), и **сетевой кабель** до роутера. `python3` нужен только для восстановления по UART и скрипта проверки загрузчика.
 
 ## 3. Установка
 
@@ -95,6 +95,8 @@
 git clone https://github.com/pabragin/xiaomi-be5000-openwrt && cd xiaomi-be5000-openwrt
 sh install.sh root@192.168.31.1        # 192.168.31.1 — адрес стока Xiaomi; на OpenWrt обычно 192.168.1.1
 ```
+
+На Windows в командной строке из папки репозитория: `install.bat root@192.168.31.1` (или двойной щелчок по `install.bat`, тогда адрес по умолчанию `192.168.31.1`). Он запускает тот же `install.sh` через Git Bash, а без него — через WSL.
 
 Скрипт скачает образ OpenWrt из [последнего релиза](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) и сверит его с контрольными суммами релиза. Потом один раз спросит пароль роутера и:
 1. проверит чип флеша и разделы (если загрузчик не поддерживает чип, остановится, ничего не записав);
@@ -171,6 +173,7 @@ ssh root@192.168.1.1 sysupgrade /tmp/sysupgrade.bin
 | [`openwrt-…-full-squashfs-sysupgrade.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | то же с VPN ([два образа](#два-образа)) | так же |
 | [`openwrt-…-initramfs-kernel.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | OpenWrt в RAM для проверки и восстановления. Лежит в релизе | TFTP → `bootm`, флеш не трогает |
 | [`install.sh`](install.sh) | установка одной командой: проверка, бэкап, калибровка, загрузчик | запускается на компьютере |
+| [`install.bat`](install.bat) | то же на Windows: запускает `install.sh` через Git Bash или WSL | запускается на Windows |
 | [`scripts/router/be5000-install.sh`](scripts/router/be5000-install.sh) | проверка, запись калибровки и загрузчика с проверкой чтением | запускается на роутере |
 | [`scripts/pc/`](scripts/pc/) | бэкап, UART-восстановление, проверка загрузчика | запускается на ПК |
 

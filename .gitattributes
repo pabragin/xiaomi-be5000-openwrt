@@ -1,0 +1,5 @@
+# install.bat runs install.sh in Git Bash: keep shell and Python scripts LF
+# even with core.autocrlf=true, and the batch file CRLF.
+*.sh text eol=lf
+*.py text eol=lf
+*.bat text eol=crlf

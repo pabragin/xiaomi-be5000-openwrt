@@ -12,6 +12,7 @@ BL=firmware/bootloader/be5000-bootloader-w25n01kv.bin
 IMG=openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin
 REL=https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest/download
 OUT=be5000-backup-$(date +%Y%m%d-%H%M%S)
+HERE=$(pwd -W 2>/dev/null || pwd)   # Git Bash on Windows: C:/... instead of /c/...
 CTL=${TMPDIR:-/tmp}/be5000-ssh-$$
 export SSH_OPTS="-o ConnectTimeout=15 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ControlMaster=auto -o ControlPath=$CTL -o ControlPersist=600"
 SSH="ssh $SSH_OPTS"
@@ -76,7 +77,7 @@ step "4/6 Backing up the whole flash to $OUT (a few minutes)"
 sh scripts/pc/be5000-backup.sh "$R" "$OUT" || fail "backup failed. If the output above shows an I/O error on a partition, the flash has a bad block there: open an issue with the output; otherwise run again"
 
 echo
-echo "Next step writes to flash. Backup: $(pwd)/$OUT - keep it somewhere safe."
+echo "Next step writes to flash. Backup: $HERE/$OUT - keep it somewhere safe."
 printf 'Type YES and press Enter to continue: '
 read -r ans || ans=
 [ "$ans" = YES ] || fail "cancelled, nothing was written"
@@ -95,7 +96,7 @@ cat <<EOT
 Done, the router is rebooting. Now flash the firmware from a browser:
   1. Set a static address on the PC's wired adapter: IP 192.168.1.10, netmask 255.255.255.0.
   2. After a minute, open http://192.168.1.1
-  3. Choose the file $(pwd)/firmware/openwrt/$IMG,
+  3. Choose the file $HERE/firmware/openwrt/$IMG,
      click Upload, then Proceed. Wait 5 minutes, do not power off.
   4. Switch the PC back to automatic addressing (DHCP) and open http://192.168.1.1 again.
 EOT

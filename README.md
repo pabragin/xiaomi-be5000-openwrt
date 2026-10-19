@@ -82,7 +82,7 @@ Both: OpenSpeedTest from a 2x2 160 MHz MacBook to a wired PC. On the right the M
 ## 2. Requirements
 
 - **A router with root SSH access** on the Xiaomi stock firmware. Getting root on the stock firmware is not covered here: use [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher), which knows the BE5000 (Russian-language help: the [4PDA thread](https://4pda.to/forum/index.php?showtopic=1088946)). Already on OpenWrt xinyooo/iscle? You only need [`sysupgrade -n`](#from-xinyooo-or-iscle-openwrt).
-- **A computer** with macOS or Linux (on Windows use WSL): `ssh`, `curl` and `git` (or download the repository as a ZIP from the green **Code** button), and **a network cable** to the router. `python3` is needed only for UART recovery and the bootloader check script.
+- **A computer** with macOS, Linux or Windows (on Windows you need [Git for Windows](https://git-scm.com/download/win) with Git Bash, or WSL): `ssh`, `curl` and `git` (or download the repository as a ZIP from the green **Code** button), and **a network cable** to the router. `python3` is needed only for UART recovery and the bootloader check script.
 
 ## 3. Install
 
@@ -95,6 +95,8 @@ Both: OpenSpeedTest from a 2x2 160 MHz MacBook to a wired PC. On the right the M
 git clone https://github.com/pabragin/xiaomi-be5000-openwrt && cd xiaomi-be5000-openwrt
 sh install.sh root@192.168.31.1        # 192.168.31.1 is the Xiaomi stock address; usually 192.168.1.1 on OpenWrt
 ```
+
+On Windows, in a command prompt in the repository folder: `install.bat root@192.168.31.1` (or double-click `install.bat`, which uses `192.168.31.1`). It runs the same `install.sh` through Git Bash, or WSL without it.
 
 The script downloads the OpenWrt image from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) and verifies it against the release checksums. Then it asks for the router password once and:
 1. checks the flash chip and the partitions (if the bootloader does not support the chip, it stops before writing anything);
@@ -171,6 +173,7 @@ Details, with photos and troubleshooting: [docs/en/recovery-uart.md](docs/en/rec
 | [`openwrt-…-full-squashfs-sysupgrade.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | the same with VPN ([two images](#two-images)) | the same |
 | [`openwrt-…-initramfs-kernel.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | OpenWrt in RAM for testing and recovery. In the release | TFTP → `bootm`, does not touch flash |
 | [`install.sh`](install.sh) | one-command install: check, backup, calibration, bootloader | runs on the computer |
+| [`install.bat`](install.bat) | the same on Windows: runs `install.sh` through Git Bash or WSL | runs on Windows |
 | [`scripts/router/be5000-install.sh`](scripts/router/be5000-install.sh) | check, write calibration and bootloader with read-back verification | runs on the router |
 | [`scripts/pc/`](scripts/pc/) | backup, UART recovery, bootloader check | runs on the computer |
 
