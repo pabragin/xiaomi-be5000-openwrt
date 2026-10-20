@@ -53,7 +53,8 @@
 | `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` | с VPN: то же плюс AmneziaWG 3.1, Xray из форка Amnezia, zapret, https-dns-proxy (DNS по HTTPS) и pbr (маршрутизация по правилам), все с LuCI |
 
 - **В образе с VPN всё выключено.** Пакеты стоят, но службы не запущены: их включают и настраивают в LuCI. DNS по HTTPS тоже выключен, потому что после включения он забирает себе DNS всей сети.
-- **В обычный образ** те же пакеты ставятся через `apk add` из [источника этой сборки](https://pabragin.github.io/xiaomi-be5000-openwrt/). Как и везде в OpenWrt, `sysupgrade` переносит настройки, но не доставленные пакеты: после обновления их ставят заново, настройки подхватятся. В образе с VPN пакеты уже внутри.
+- **В обычный образ** те же пакеты ставятся через `apk add` из [источника этой сборки](https://pabragin.github.io/xiaomi-be5000-openwrt/).
+- **Там же, только через `apk add`:** `luci-app-podkop` (с `luci-i18n-podkop-ru`; подтянет sing-box), `luci-app-nikki` (mihomo), `youtubeUnblock` + `luci-app-youtubeUnblock`, `byedpi`. В образы они не входят: sing-box и mihomo занимают по 10–19 МБ. Ставятся в `/overlay` (~79 МБ). Как и везде в OpenWrt, `sysupgrade` переносит настройки, но не доставленные пакеты: после обновления их ставят заново, настройки подхватятся. В образе с VPN пакеты уже внутри.
 
 ### Ускорение NPU и VPN
 

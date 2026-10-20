@@ -53,7 +53,8 @@ Every release has two images. Both install the same way, and `sysupgrade` moves 
 | `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` | VPN: the same plus AmneziaWG 3.1, Xray from the Amnezia fork, zapret, https-dns-proxy (DNS over HTTPS) and pbr (policy routing), all with LuCI |
 
 - **Everything is off in the VPN image.** The packages are installed, but no service runs until it is set up and enabled in LuCI. DNS over HTTPS is off too, because once enabled it takes over the DNS of the whole network.
-- **On the plain image** the same packages install with `apk add` from [this build's feed](https://pabragin.github.io/xiaomi-be5000-openwrt/). As anywhere on OpenWrt, `sysupgrade` keeps the settings but not added packages: install them again after an upgrade and they pick up their settings. The VPN image has them built in.
+- **On the plain image** the same packages install with `apk add` from [this build's feed](https://pabragin.github.io/xiaomi-be5000-openwrt/).
+- **Also in the feed, with `apk add` only:** `luci-app-podkop` (with `luci-i18n-podkop-ru`; pulls in sing-box), `luci-app-nikki` (mihomo), `youtubeUnblock` + `luci-app-youtubeUnblock`, `byedpi`. They are not in the images: sing-box and mihomo take 10–19 MB each. They install into `/overlay` (~79 MB). As anywhere on OpenWrt, `sysupgrade` keeps the settings but not added packages: install them again after an upgrade and they pick up their settings. The VPN image has them built in.
 
 ### NPU offload and VPN
 
