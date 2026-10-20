@@ -26,7 +26,7 @@ Everything below is tested on a BE5000 running this firmware.
 
 | What | How it works |
 |---|---|
-| **System** | OpenWrt SNAPSHOT `r36539+1010`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
+| **System** | OpenWrt SNAPSHOT `r36539+1054`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
 | **5 GHz Wi-Fi** | 3x3, 160 MHz, Wi-Fi 6/7. A 2x2 MacBook (2 streams, 2402 Mbit/s link): **1897 Mbit/s** download, **1778 Mbit/s** upload ([test](docs/en/technical.md#speed)) |
 | **Wi-Fi 7** | WPA3 with GCMP-256 and MLO (2.4 + 5 GHz) also go through the NPU: a Wi-Fi 7 client on WPA3 uploads 1560–1760 Mbit/s |
 | **2.4 GHz Wi-Fi** | 2x2, works, 20/40 MHz |
@@ -37,7 +37,7 @@ Everything below is tested on a BE5000 running this firmware.
 | **Settings** | survive reboots and power cuts, and are kept across firmware upgrades; about 79 MiB free in `/overlay` for settings and packages |
 | **Temperature** | SoC sensors in `/sys/class/thermal` (63–69 °C); the CPU is throttled at 105 °C |
 | **Reboot** | warm and cold reboots without hangs; if the system hangs, the watchdog reboots it after ~30 s. Except the reboot right after `sysupgrade` ([known issues](#known-issues)) |
-| **Management** | LuCI web UI and SSH at `192.168.1.1`, upgrades with `sysupgrade` |
+| **Management** | LuCI web UI and SSH at `192.168.1.1`, upgrades with `sysupgrade`. LuCI in English, Russian, Ukrainian, Chinese, German, Spanish, French and Brazilian Portuguese: picked by the browser or in **System → System → Language and Style**. Each radio's dialog offers only its own band (iwinfo fix for the MT7992, whose two radios are one device) |
 | **Packages** | `apk add` from the OpenWrt feeds; kernel modules (`kmod-*`, all 1100 of them) and the packages of the VPN image from [this build's own feed](https://pabragin.github.io/xiaomi-be5000-openwrt/) |
 | **MAC addresses** | from the router's label, taken from its factory calibration |
 
@@ -142,7 +142,7 @@ For the VPN image use the same commands with `openwrt-airoha-an7563-xiaomi_be500
 
 | Now installed | How to upgrade |
 |---|---|
-| be5000-openwrt-20261018 | straight to the latest release |
+| be5000-openwrt-20261018 or newer | straight to the latest release |
 | be5000-openwrt-20261016 or 20261017 | **first** [be5000-openwrt-20261018](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/tag/be5000-openwrt-20261018), **then** the latest release |
 | Xiaomi stock, xinyooo, iscle | straight to the latest release: [install](#3-install) or [`sysupgrade -n`](#from-xinyooo-or-iscle-openwrt) |
 

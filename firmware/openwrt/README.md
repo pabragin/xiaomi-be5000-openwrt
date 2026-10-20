@@ -1,6 +1,6 @@
 # OpenWrt images
 
-The images are not in git: download them from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) (`install.sh` does it). Build: OpenWrt `main` (`r36539+1010-98bc30d154`, Linux 6.18.55, mt76 2026-10-08) with [iscle](https://github.com/iscle/openwrt)'s BE5000 series and the fixes from this repository. Tested on the reference router (W25N01KV): `sysupgrade` with kept settings from be5000-openwrt-20261018, between the plain and the VPN image in both directions, warm and cold reboots. Not tested with this image yet: a web failsafe install from stock (the first boot that formats the settings partition).
+The images are not in git: download them from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) (`install.sh` does it). Build: OpenWrt `main` (`r36539+1054-98bc30d154`, Linux 6.18.55, mt76 2026-10-08) with [iscle](https://github.com/iscle/openwrt)'s BE5000 series and the fixes from this repository. Tested on the reference router (W25N01KV): `sysupgrade` with kept settings from be5000-openwrt-20261019 and 20261018, between the plain and the VPN image in both directions, warm and cold reboots, Wi-Fi with country RU and automatic channels on a fresh config. Not tested with this image yet: a web failsafe install from stock (the first boot that formats the settings partition).
 
 | Release file | Use |
 |---|---|
@@ -16,4 +16,4 @@ What the build changes compared to iscle's, the flash layout, PCIe and the speed
 - **Upgrading from an image with JFFS2 settings** (iscle, xinyooo): use `sysupgrade -n`. The old system would append the settings as JFFS2 inside `firmware`, where this image does not look.
 - **Defaults:** LAN `192.168.1.1`, DHCP server on, root without password, Wi-Fi disabled, NPU offload on.
 - **From be5000-openwrt-20261016 or 20261017:** upgrade to be5000-openwrt-20261018 first. Only that release moves the settings from the old 40 MiB partition; newer images format it.
-- **Source and licence:** OpenWrt is GPL-2.0. Sources: the patch series against upstream OpenWrt `main` (the BE5000 series and the fixes from this repository) and the build `diffconfig`, as `be5000-openwrt-source-patches.tar.gz` and `diffconfig` in the [release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/tag/be5000-openwrt-20261019).
+- **Source and licence:** OpenWrt is GPL-2.0. Sources: the patch series against upstream OpenWrt `main` (the BE5000 series and the fixes from this repository) and the build `diffconfig`, as `be5000-openwrt-source-patches.tar.gz` and `diffconfig` in the [release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/tag/be5000-openwrt-20261020).
