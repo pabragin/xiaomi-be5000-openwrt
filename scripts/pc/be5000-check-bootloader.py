@@ -12,6 +12,7 @@ import lzma
 import re
 import struct
 import sys
+import zlib
 
 NAMES = {
     "5ff9ec0b": "BL2",
@@ -71,6 +72,13 @@ def main():
             env = re.search(rb"bootcmd=[^\x00]+", u[0])
             print("  " + (v.group().decode("latin1") if v else "U-Boot version not found"))
             print("  " + (env.group().decode("latin1") if env else "no bootcmd: this U-Boot does not boot by itself"))
+    stored = d[0x7C000:0x80000] if len(d) >= 0x80000 else b""
+    if stored and any(stored):
+        crc_ok = struct.unpack("<I", stored[:4])[0] == zlib.crc32(stored[4:])
+        print(f"u-boot-env     offset 0x7c000 size 0x04000 crc {'OK' if crc_ok else 'BAD (U-Boot uses its defaults)'}")
+        for kv in stored[4:].split(b"\0\0")[0].split(b"\0"):
+            if kv.startswith(b"bootcmd="):
+                print("  " + kv.decode("latin1"))
     sys.exit(0 if ok else 2)
 
 

@@ -186,7 +186,7 @@ Checksums and origin of the binaries: [firmware/bootloader/README.md](firmware/b
 
 | Component | What is on the flash |
 |---|---|
-| Bootloader (0x0–0x80000) | BL2 with W25N01KV support + BL31 + U-Boot 2026.01 (autoboot, web failsafe at `192.168.1.1`) |
+| Bootloader (0x0–0x80000) | BL2 with W25N01KV support + BL31 + U-Boot 2026.01 (autoboot, web failsafe at `192.168.1.1`: Reset held at power-on or no OpenWrt to boot) |
 | Wi-Fi calibration | factory MT7992 EEPROM moved to block `0xA0000` (`art` partition) |
 | Firmware | OpenWrt (our build based on [iscle](https://github.com/iscle/openwrt)) in the `firmware` partition at `0xC0000`, 24 MiB |
 | Settings | `ubi-data` partition at `0x18C0000`, 93 MiB, `rootfs_data` volume (UBIFS) |
