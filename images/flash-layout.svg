@@ -25,7 +25,7 @@
     <rect x="370" y="210" width="222" height="56" fill="#cfe2ff" stroke="#0a58ca" stroke-width="2"/><text x="481" y="234" font-weight="bold">firmware: FIT + squashfs</text><text x="481" y="252" fill="#444">0xC0000, 24 MiB</text>
     <rect x="592" y="210" width="368" height="56" fill="#e0cffc" stroke="#6f42c1" stroke-width="2"/><text x="776" y="234" font-weight="bold">ubi-data: rootfs_data (UBIFS, settings)</text><text x="776" y="252" fill="#444">0x18C0000, 93 MiB</text>
   </g>
-  <text x="267" y="290" font-size="11" fill="#555" text-anchor="middle">u-boot-env 0x7C000 (16 KiB, RO)</text>
+  <text x="267" y="290" font-size="11" fill="#555" text-anchor="middle">u-boot-env 0x60000 (env at 0x7C000)</text>
 
   <g font-size="13" fill="#111">
     <line x1="555" y1="128" x2="345" y2="206" stroke="#b02a37" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a)"/>

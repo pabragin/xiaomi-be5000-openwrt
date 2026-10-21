@@ -36,8 +36,8 @@
 
 | Offset | Xiaomi stock firmware | After install | Size |
 |---|---|---|---|
-| `0x000000` | Bootloader | u-boot | `0x7C000` |
-| `0x07C000` | ↑ | u-boot-env (RO) | `0x4000` |
+| `0x000000` | Bootloader | u-boot (RO) | `0x60000` |
+| `0x060000` | ↑ | u-boot-env: U-Boot environment in the last 16 KiB (`0x7C000`) | `0x20000` |
 | `0x080000` | u-boot-env | art: block 1 | `0x20000` |
 | `0x0A0000` | ↑ (empty) | art: block 2 = **calibration** | `0x20000` |
 | `0x0C0000` | ↑ | firmware: kernel (FIT) | `0x3C0000` |

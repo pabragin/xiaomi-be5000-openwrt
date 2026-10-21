@@ -296,7 +296,8 @@ cmd_bootloader() {
 		*) [ "${BE5000_NAND_OK:-}" = 1 ] || die "NAND chip not identified. Check the chip marking against the list, then re-run with BE5000_NAND_OK=1" ;;
 	esac
 	img=/tmp/.be5000_bl
-	# The replacement layout has a 0x7C000 "u-boot" partition; the image tail is zero padding.
+	# The replacement layout has a 0x60000 "u-boot" partition (0x7C000 in older builds);
+	# the image tail is zero padding and the U-Boot environment in u-boot-env.
 	dd if="$f" of=$img bs=4096 count=$(( (size < 524288 ? size : 524288) / 4096 )) 2>/dev/null
 	[ "$(hash_of "$f" 0 $((0x50000)))" = "$(hash_of $img 0 $((0x50000)))" ] || die "partition too small for image data"
 	old=/tmp/be5000-mtd$idx-old-bootloader.bin

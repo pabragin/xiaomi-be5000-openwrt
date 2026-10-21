@@ -52,8 +52,8 @@ ssh $R sh /tmp/be5000-install.sh check
 
 ```
 >>> MTD partitions (index name offset size flags; flag 0x400 = writable)
-  mtd0  u-boot         off=0x00000000 size=0x0007c000 RO
-  mtd1  u-boot-env     off=0x0007c000 size=0x00004000 RO
+  mtd0  u-boot         off=0x00000000 size=0x00060000 RO
+  mtd1  u-boot-env     off=0x00060000 size=0x00020000 rw
   mtd2  art            off=0x00080000 size=0x00040000 rw
   mtd3  firmware       off=0x000c0000 size=0x01800000 rw
   mtd4  kernel         off=0x00000000 size=0x003c0000 rw (inside firmware)
@@ -69,7 +69,7 @@ ssh $R sh /tmp/be5000-install.sh check
   SUPPORTED: the BL2 of be5000-bootloader-w25n01kv.bin knows W25N01KV
   Note: xinyooo v2026.05/06 bootloaders and the X-WRT preloader do NOT know W25N01KV
 >>> Detected flash layout: replacement
-  bootloader partition: mtd0 'u-boot' size=0x7c000 READ-ONLY
+  bootloader partition: mtd0 'u-boot' size=0x60000 READ-ONLY
   calibration block 0xA0000: mtd2 'art' +0x20000, already contains MT7992 calibration, rw
 ```
 

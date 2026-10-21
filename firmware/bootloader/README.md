@@ -29,7 +29,7 @@ loadaddr=0x81800000  fitsize=0x500000  ipaddr=192.168.1.1  serverip=192.168.1.10
 ```
 
 - **How the check works:** this U-Boot has no `button` or `gpio` command, so `check_reset` reads byte 0 of the GPIO data register (GPIO 0–7) and tests bit 5 as four `itest` ranges. If the check fails, the normal boot runs.
-- **Who gets it:** an install from the Xiaomi firmware and the UART recovery write the whole 512 KiB, environment included. A router already on the new flash layout keeps its old `u-boot-env`: `be5000-install.sh` writes only the `u-boot` partition there (`0x7C000`).
+- **Who gets it:** an install from the Xiaomi firmware and the UART recovery write the whole 512 KiB, environment included. A router already on OpenWrt gets it at the first boot of an image of this build: `13_xiaomi-be5000-uboot-env` writes it into the `u-boot-env` block (`0x60000`, 128 KiB) if that block is empty, and leaves a block with any data alone.
 - **Rebuild:** `python3 scripts/pc/be5000-uboot-env.py firmware/bootloader/be5000-bootloader-w25n01kv.bin` writes the environment into the image; `be5000-check-bootloader.py` shows the stored `bootcmd` and its CRC.
 - **Without the environment** (empty or bad CRC) U-Boot uses its built-in default: `bootcmd=run uboot_boot || run bootcmd_failsafe`, so the failsafe starts only when OpenWrt does not load.
 
