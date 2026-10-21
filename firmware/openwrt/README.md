@@ -1,6 +1,6 @@
 # OpenWrt images
 
-The images are not in git: download them from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) (`install.sh` does it). Build: OpenWrt `main` (`r36539+1058-98bc30d154`, Linux 6.18.55, mt76 2026-10-08) with [iscle](https://github.com/iscle/openwrt)'s BE5000 series and the fixes from this repository. Tested on the reference router (W25N01KV): `sysupgrade` with kept settings from be5000-openwrt-20261020, the first-boot write of the U-Boot environment into an empty `u-boot-env` block (and no write into a block with data), Reset held at power-on bringing up the web failsafe, warm reboots. Not tested with this image yet: a web failsafe install from stock (the first boot that formats the settings partition).
+The images are not in git: download them from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) (`install.sh` does it). Build: OpenWrt `main` (`r36539+1059-98bc30d154`, Linux 6.18.55, mt76 2026-10-08) with [iscle](https://github.com/iscle/openwrt)'s BE5000 series and the fixes from this repository. Tested on the reference router (W25N01KV): `sysupgrade` with kept settings from be5000-openwrt-20261020, the first-boot write of the U-Boot environment into an empty `u-boot-env` block (and no write into a block with data), Reset held at power-on bringing up the web failsafe, warm reboots. Not tested with this image yet: a web failsafe install from stock (the first boot that formats the settings partition).
 
 | Release file | Use |
 |---|---|
