@@ -27,7 +27,7 @@ TAG=be5000-install-$$
 # after the password and removed at the end.
 # BE5000_SSH_KEY=1 uses the one-time key on any system.
 case $(uname -s)${BE5000_SSH_KEY:+key} in
-	MINGW*|MSYS*|CYGWIN*|*key)
+	*_NT*|MINGW*|MSYS*|CYGWIN*|*key)   # MINGW64_NT-…, UCRT64_NT-…, CLANG64_NT-…
 		KEY=${TMPDIR:-/tmp}/$TAG
 		export SSH_OPTS="$SSH_BASE -i $KEY -o IdentitiesOnly=yes" ;;
 	*)
@@ -114,18 +114,29 @@ fi
 
 step "2/6 Connecting to $R (enter the router password once)"
 SSH_FAIL="could not SSH into $R. Check the address and the root password (after XMiR-Patcher it is root, not the web interface password): sh install.sh root@ADDRESS. If the router already rebooted after a previous run, continue with the browser step from the README"
-if [ -n "$KEY" ]; then
+use_key() {   # one-time key: password once, then key auth for every command
 	command -v ssh-keygen >/dev/null 2>&1 || fail "ssh-keygen is not installed on this computer"
+	KEY=${TMPDIR:-/tmp}/$TAG
 	rm -f "$KEY" "$KEY.pub"
 	ssh-keygen -q -t ed25519 -N "" -C "$TAG" -f "$KEY" || fail "could not create a one-time SSH key"
 	ssh $SSH_BASE "$R" 'mkdir -p /etc/dropbear && k=$(cat) && for f in /etc/dropbear/authorized_keys /root/.ssh/authorized_keys; do [ -d ${f%/*} ] || continue; echo "$k" >> $f; chmod 600 $f; done' < "$KEY.pub" || fail "$SSH_FAIL"
+	export SSH_OPTS="$SSH_BASE -i $KEY -o IdentitiesOnly=yes"; SSH="ssh $SSH_OPTS"
 	if ! $SSH -o BatchMode=yes "$R" true 2>/dev/null; then
 		echo "the router did not accept the one-time key: it will ask for the password at every step"
 		rm -f "$KEY" "$KEY.pub"; KEY=
 		export SSH_OPTS="$SSH_BASE"; SSH="ssh $SSH_OPTS"
 	fi
+}
+if [ -n "$KEY" ]; then
+	use_key
 else
 	$SSH "$R" true || fail "$SSH_FAIL"
+	# the shared connection must work without asking again; if not (some Windows ssh builds), use the key
+	if ! $SSH -o BatchMode=yes "$R" true 2>/dev/null; then
+		echo "the shared SSH connection does not work here, using a one-time key instead (the password is asked once more)"
+		ssh $SSH_OPTS -O exit "$R" 2>/dev/null || true
+		use_key
+	fi
 fi
 upload scripts/router/be5000-install.sh
 upload "$BL"
