@@ -132,7 +132,15 @@ Step-by-step install, the manual flash chip check and the `READ-ONLY` case: [doc
 1. Open the [latest release page](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) and download:
    - the image: `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` (plain) or `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` (`full`, with VPN);
    - `SHA256SUMS`: the script uses it to check that the file downloaded completely.
-2. Put both files into the `firmware/openwrt/` folder inside the repository (create it if it is missing).
+2. Put both files into the `firmware/openwrt/` folder inside the repository (create it if it is missing):
+   ```
+   xiaomi-be5000-openwrt/
+   └── firmware/
+       └── openwrt/
+           ├── openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin
+           └── SHA256SUMS
+   ```
+   The name must be exactly `SHA256SUMS`, with no extension: if the browser saved it as `SHA256SUMS.txt`, rename it. If the image is elsewhere and you point to it with `BE5000_IMAGE`, `SHA256SUMS` can sit next to the image.
 3. Run the installer as usual: `sh install.sh root@192.168.31.1` (on Windows `install.bat root@192.168.31.1`).
 4. The script prints `checksum OK` and goes on without downloading anything.
 

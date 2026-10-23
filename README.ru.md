@@ -132,7 +132,15 @@ sh install.sh root@192.168.31.1        # 192.168.31.1 — адрес стока 
 1. Откройте [страницу последнего релиза](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) и скачайте:
    - образ: `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` (обычный) или `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` (`full`, с VPN);
    - `SHA256SUMS` — по нему скрипт проверит, что файл скачался целиком.
-2. Положите оба файла в папку `firmware/openwrt/` внутри репозитория (папки нет — создайте).
+2. Положите оба файла в папку `firmware/openwrt/` внутри репозитория (папки нет — создайте):
+   ```
+   xiaomi-be5000-openwrt/
+   └── firmware/
+       └── openwrt/
+           ├── openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin
+           └── SHA256SUMS
+   ```
+   Имя должно быть ровно `SHA256SUMS`, без расширения: если браузер сохранил его как `SHA256SUMS.txt`, переименуйте. Если образ лежит в другом месте и вы указываете его через `BE5000_IMAGE`, `SHA256SUMS` можно положить рядом с образом.
 3. Запустите установщик как обычно: `sh install.sh root@192.168.31.1` (на Windows — `install.bat root@192.168.31.1`).
 4. Скрипт напишет `checksum OK` и пойдёт дальше, ничего не скачивая.
 
