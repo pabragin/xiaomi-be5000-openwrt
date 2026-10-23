@@ -19,8 +19,21 @@ case $VARIANT in ""|plain|full) ;; *) echo "usage: sh install.sh [root@ADDRESS] 
 REL=https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest/download
 OUT=be5000-backup-$(date +%Y%m%d-%H%M%S)
 HERE=$(pwd -W 2>/dev/null || pwd)   # Git Bash on Windows: C:/... instead of /c/...
-CTL=${TMPDIR:-/tmp}/be5000-ssh-$$
-export SSH_OPTS="-o ConnectTimeout=15 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ControlMaster=auto -o ControlPath=$CTL -o ControlPersist=600"
+SSH_BASE="-o ConnectTimeout=15 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
+TAG=be5000-install-$$
+# The password is asked once. macOS/Linux/WSL: all commands share one SSH connection.
+# Windows (Git Bash, MSYS, Cygwin) cannot pass descriptors to a shared connection
+# ("mux_client_request_session: send fds failed"): a one-time key is put on the router
+# after the password and removed at the end.
+# BE5000_SSH_KEY=1 uses the one-time key on any system.
+case $(uname -s)${BE5000_SSH_KEY:+key} in
+	MINGW*|MSYS*|CYGWIN*|*key)
+		KEY=${TMPDIR:-/tmp}/$TAG
+		export SSH_OPTS="$SSH_BASE -i $KEY -o IdentitiesOnly=yes" ;;
+	*)
+		KEY=
+		export SSH_OPTS="$SSH_BASE -o ControlMaster=auto -o ControlPath=${TMPDIR:-/tmp}/be5000-ssh-$$ -o ControlPersist=600" ;;
+esac
 SSH="ssh $SSH_OPTS"
 
 for t in ssh curl; do command -v $t >/dev/null 2>&1 || { echo "STOP: $t is not installed on this computer" >&2; exit 1; }; done
@@ -29,7 +42,12 @@ step() { printf '\n=== %s\n' "$*"; }
 fail() { printf '\nSTOP: %s\n' "$*" >&2; exit 1; }
 upload() { $SSH "$R" "cat > /tmp/$(basename "$1")" < "$1"; }   # no scp: works without sftp
 sha256() { if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$1"; else sha256sum "$1"; fi | cut -d' ' -f1; }
-trap 'ssh $SSH_OPTS -O exit "$R" 2>/dev/null || true' EXIT
+drop_key() {   # the one-time key off the router and the PC
+	[ -n "$KEY" ] || return 0
+	[ -f "$KEY" ] && $SSH "$R" "sed -i '/$TAG/d' /etc/dropbear/authorized_keys /root/.ssh/authorized_keys 2>/dev/null; true" 2>/dev/null
+	rm -f "$KEY" "$KEY.pub"
+}
+trap 'drop_key; [ -n "$KEY" ] || ssh $SSH_OPTS -O exit "$R" 2>/dev/null || true' EXIT
 
 step "1/6 OpenWrt images for the browser step at the end"
 # install.sh itself writes only the calibration and the bootloader; the OpenWrt image
@@ -95,7 +113,20 @@ else
 fi
 
 step "2/6 Connecting to $R (enter the router password once)"
-$SSH "$R" true || fail "could not SSH into $R. Check the address and password: sh install.sh root@ADDRESS. If the router already rebooted after a previous run, continue with the browser step from the README"
+SSH_FAIL="could not SSH into $R. Check the address and the root password (after XMiR-Patcher it is root, not the web interface password): sh install.sh root@ADDRESS. If the router already rebooted after a previous run, continue with the browser step from the README"
+if [ -n "$KEY" ]; then
+	command -v ssh-keygen >/dev/null 2>&1 || fail "ssh-keygen is not installed on this computer"
+	rm -f "$KEY" "$KEY.pub"
+	ssh-keygen -q -t ed25519 -N "" -C "$TAG" -f "$KEY" || fail "could not create a one-time SSH key"
+	ssh $SSH_BASE "$R" 'mkdir -p /etc/dropbear && k=$(cat) && for f in /etc/dropbear/authorized_keys /root/.ssh/authorized_keys; do [ -d ${f%/*} ] || continue; echo "$k" >> $f; chmod 600 $f; done' < "$KEY.pub" || fail "$SSH_FAIL"
+	if ! $SSH -o BatchMode=yes "$R" true 2>/dev/null; then
+		echo "the router did not accept the one-time key: it will ask for the password at every step"
+		rm -f "$KEY" "$KEY.pub"; KEY=
+		export SSH_OPTS="$SSH_BASE"; SSH="ssh $SSH_OPTS"
+	fi
+else
+	$SSH "$R" true || fail "$SSH_FAIL"
+fi
 upload scripts/router/be5000-install.sh
 upload "$BL"
 
@@ -143,7 +174,12 @@ step "6/6 Bootloader (do not power off!)"
 $SSH "$R" "BE5000_NAND_OK=${BE5000_NAND_OK:-} sh /tmp/be5000-install.sh bootloader /tmp/$(basename "$BL")" \
 	|| fail "bootloader step failed. If the output above contains 'writing bootloader', do NOT reboot or power off the router: run sh install.sh again right away, it writes the bootloader again; if that fails too, open an issue with the output. Otherwise nothing was written"
 $SSH "$R" 'cat /tmp/be5000-mtd*-old-bootloader.bin' > "$OUT/old-bootloader.bin" 2>/dev/null || true
-$SSH "$R" reboot || true
+if [ -n "$KEY" ]; then
+	$SSH "$R" "sed -i '/$TAG/d' /etc/dropbear/authorized_keys /root/.ssh/authorized_keys 2>/dev/null; reboot" || true
+	rm -f "$KEY" "$KEY.pub"
+else
+	$SSH "$R" reboot || true
+fi
 
 cat <<EOT
 
