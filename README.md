@@ -103,8 +103,7 @@ On Windows, in a command prompt in the repository folder: `install.bat root@192.
 
 The script asks which image you want: plain or `full` with VPN (or pass it as the second argument: `sh install.sh root@192.168.31.1 full`, or `plain`). Then it downloads the image from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) and verifies it against the release checksums.
 
-- **Already downloaded the image:** put it into `firmware/openwrt/` (ideally with `SHA256SUMS` from the same release) or give its path: `BE5000_IMAGE=/path/to/image.bin sh install.sh root@192.168.31.1`. The script then downloads nothing and only checks the file. Without `SHA256SUMS` it makes sure the image is for the BE5000 and warns that the checksum was not checked.
-- **GitHub not reachable:** the same: download the image and `SHA256SUMS` from the release page by hand and put them into `firmware/openwrt/`.
+If the image does not download, or you already have it, see [If the image does not download](#if-the-image-does-not-download).
 
 Then it asks for the router password once and:
 1. checks the flash chip and the partitions (if the bootloader does not support the chip, it stops before writing anything);
@@ -125,6 +124,26 @@ Then it asks for the router password once and:
 **Back to Xiaomi.** Only from the backup of step 1, and not tested here. The stock partitions do not match OpenWrt's, so they are written by absolute offset from the U-Boot console over UART (`python3 scripts/pc/be5000-uart-recover.py PORT --console`, the `mtd` commands are in [the UART guide](docs/en/recovery-uart.md#calibration-from-the-u-boot-console)): for every `mtdN-<name>.bin` of the backup, `tftpboot 0x84000000 mtdN-<name>.bin`, `mtd erase spi-nand0 OFFSET SIZE`, `mtd write spi-nand0 0x84000000 OFFSET SIZE`, with OFFSET and SIZE taken from the backup's `sysfs_mtd.txt`; the bootloader (`mtd0`, offset 0) last. The bootloader can also be written by the recovery script: `python3 scripts/pc/be5000-uart-recover.py PORT --image be5000-backup-<date>/mtd0-<name>.bin`.
 
 Step-by-step install, the manual flash chip check and the `READ-ONLY` case: [docs/en/install-ssh.md](docs/en/install-ssh.md).
+
+### If the image does not download
+
+`install.sh` may fail to download the image when GitHub is unreachable or drops the download. Then download the files by hand and the script takes them from disk:
+
+1. Open the [latest release page](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) and download:
+   - the image: `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` (plain) or `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` (`full`, with VPN);
+   - `SHA256SUMS`: the script uses it to check that the file downloaded completely.
+2. Put both files into the `firmware/openwrt/` folder inside the repository (create it if it is missing).
+3. Run the installer as usual: `sh install.sh root@192.168.31.1` (on Windows `install.bat root@192.168.31.1`).
+4. The script prints `checksum OK` and goes on without downloading anything.
+
+| Situation | What `install.sh` does |
+|---|---|
+| Image and `SHA256SUMS` in `firmware/openwrt/` | checks the checksum and uses the image |
+| Only the image, no `SHA256SUMS` | checks that the image is for the BE5000, warns `checksum NOT checked` and uses it |
+| Both images in the folder | asks which one; or pass `plain` / `full` as the second argument |
+| The image is somewhere else | give its path: `BE5000_IMAGE=/path/to/image.bin sh install.sh root@192.168.31.1` |
+| Image from an older release, internet works | downloads the image of the latest release |
+| Checksum does not match | stops: the file is damaged or from another release; download it again |
 
 ### From xinyooo or iscle OpenWrt
 
