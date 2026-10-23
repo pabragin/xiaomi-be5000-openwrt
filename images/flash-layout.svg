@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="480" viewBox="0 0 1180 480" font-family="Helvetica, Arial, sans-serif">
-  <rect width="1180" height="480" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="500" viewBox="0 0 1180 500" font-family="Helvetica, Arial, sans-serif">
+  <rect width="1180" height="500" fill="#ffffff"/>
   <text x="20" y="32" font-size="20" font-weight="bold" fill="#111">SPI-NAND 128 MiB: flash layout (logical area 0x0 – 0x75E0000, 117.9 MiB)</text>
   <text x="20" y="52" font-size="12" fill="#555">Widths are not to scale. Each box: name, start offset, size.</text>
 
@@ -17,7 +17,7 @@
     <rect x="746" y="74" width="100" height="66" fill="#e2e3e5" stroke="#37474f"/><text x="796" y="96" font-weight="bold">ubi (rootfs)</text><text x="796" y="113" fill="#444">0xC00000</text><text x="796" y="129" fill="#444">30 MiB</text>
     <rect x="846" y="74" width="110" height="66" fill="#e2e3e5" stroke="#37474f"/><text x="901" y="96" font-weight="bold">tclinux_slave</text><text x="901" y="113" fill="#444">0x2A00000</text><text x="901" y="129" fill="#444">36 MiB</text>
     <rect x="956" y="74" width="100" height="66" fill="#e2e3e5" stroke="#37474f"/><text x="1006" y="96" font-weight="bold">overlay</text><text x="1006" y="113" fill="#444">0x4E00000</text><text x="1006" y="129" fill="#444">32 MiB</text>
-    <rect x="1056" y="74" width="104" height="66" fill="#eceff1" stroke="#37474f"/><text x="1108" y="96" font-weight="bold">art (empty)</text><text x="1108" y="113" fill="#444">0x6E00000</text><text x="1108" y="129" fill="#444">7.9 MiB</text>
+    <rect x="1056" y="74" width="104" height="66" fill="#eceff1" stroke="#37474f"/><text x="1108" y="96" font-weight="bold">art (unused)</text><text x="1108" y="113" fill="#444">0x6E00000</text><text x="1108" y="129" fill="#444">7.9 MiB</text>
   </g>
 
   <!-- OpenWrt row: x 150..1160 -->
@@ -26,13 +26,14 @@
   <g font-size="11" text-anchor="middle">
     <rect x="150" y="244" width="80" height="66" fill="#d1e7dd" stroke="#146c43" stroke-width="2"/><text x="190" y="266" font-weight="bold">u-boot (RO)</text><text x="190" y="283" fill="#444">0x0</text><text x="190" y="299" fill="#444">384 KiB</text>
     <rect x="230" y="244" width="70" height="66" fill="#fff3cd" stroke="#37474f"/><text x="265" y="266" font-weight="bold">u-boot-env</text><text x="265" y="283" fill="#444">0x60000</text><text x="265" y="299" fill="#444">128 KiB</text>
-    <rect x="300" y="244" width="60" height="66" fill="#cfd8dc" stroke="#37474f"/><text x="330" y="266" font-weight="bold">art</text><text x="330" y="283" fill="#444">0x80000</text><text x="330" y="299" fill="#444">128 KiB</text>
-    <rect x="360" y="244" width="70" height="66" fill="#f8d7da" stroke="#b02a37" stroke-width="2"/><text x="395" y="266" font-weight="bold">art: CAL</text><text x="395" y="283" fill="#444">0xA0000</text><text x="395" y="299" fill="#444">128 KiB</text>
+    <rect x="300" y="244" width="60" height="66" fill="#cfd8dc" stroke="#37474f"/><text x="330" y="266" font-weight="bold">art blk 1</text><text x="330" y="283" fill="#444">0x80000</text><text x="330" y="299" fill="#444">128 KiB</text>
+    <rect x="360" y="244" width="70" height="66" fill="#f8d7da" stroke="#b02a37" stroke-width="2"/><text x="395" y="266" font-weight="bold">art blk 2</text><text x="395" y="283" fill="#444">0xA0000</text><text x="395" y="299" fill="#444">128 KiB</text>
     <rect x="430" y="244" width="300" height="66" fill="#cfe2ff" stroke="#0a58ca" stroke-width="2"/><text x="580" y="266" font-weight="bold">firmware: kernel (FIT) + squashfs</text><text x="580" y="283" fill="#444">0xC0000</text><text x="580" y="299" fill="#444">24 MiB</text>
     <rect x="730" y="244" width="430" height="66" fill="#e0cffc" stroke="#6f42c1" stroke-width="2"/><text x="945" y="266" font-weight="bold">ubi-data: rootfs_data (UBIFS, settings)</text><text x="945" y="283" fill="#444">0x18C0000</text><text x="945" y="299" fill="#444">93.1 MiB, to the end</text>
   </g>
-  <text x="330" y="326" font-size="11" fill="#555" text-anchor="middle">art: 2 blocks, 256 KiB</text>
-  <text x="265" y="342" font-size="11" fill="#555" text-anchor="middle">env in the last 16 KiB (0x7C000)</text>
+  <text x="265" y="326" font-size="11" fill="#555" text-anchor="middle">env in the last 16 KiB</text>
+  <text x="330" y="342" font-size="11" fill="#555" text-anchor="middle">blk 1: old Xiaomi env, unused</text>
+  <text x="395" y="358" font-size="11" fill="#b02a37" text-anchor="middle">blk 2: Wi-Fi calibration</text>
 
   <g font-size="13" fill="#111">
     <line x1="450" y1="142" x2="395" y2="240" stroke="#b02a37" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a)"/>
@@ -41,8 +42,9 @@
   <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#b02a37"/></marker></defs>
 
   <g font-size="13" fill="#333">
-    <text x="20" y="390">⚠ firmware at 0xC0000 overwrites stock bdata and Factory — back up and move the calibration first.</text>
-    <text x="20" y="416">Stock Bootloader (0x0–0x80000) = BL2 + BL31 + U-Boot in one FIP (header 0xAA640001 at offset 0x800).</text>
-    <text x="20" y="442">Logical offsets go through Airoha BMT: 943 usable blocks of 128 KiB.</text>
+    <text x="20" y="396"><tspan font-weight="bold">art</tspan> is the usual OpenWrt name for the partition with the Wi-Fi calibration (from "Atheros Radio Test"). Stock Xiaomi keeps the calibration in Factory.</text>
+    <text x="20" y="422">⚠ firmware at 0xC0000 overwrites stock bdata and Factory — back up and move the calibration first.</text>
+    <text x="20" y="448">Stock Bootloader (0x0–0x80000) = BL2 + BL31 + U-Boot in one FIP (header 0xAA640001 at offset 0x800).</text>
+    <text x="20" y="474">Logical offsets go through Airoha BMT: 943 usable blocks of 128 KiB.</text>
   </g>
 </svg>
