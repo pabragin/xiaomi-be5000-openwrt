@@ -101,7 +101,7 @@ sh install.sh root@192.168.31.1        # 192.168.31.1 is the Xiaomi stock addres
 
 On Windows, in a command prompt in the repository folder: `install.bat root@192.168.31.1` (or double-click `install.bat`, which uses `192.168.31.1`). It runs the same `install.sh` through Git Bash, or WSL without it.
 
-The script asks which image you want: plain or `full` with VPN (or pass it as the second argument: `sh install.sh root@192.168.31.1 full`, or `plain`). Then it downloads the image from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) and verifies it against the release checksums.
+The script itself writes only the calibration and the bootloader; you upload the OpenWrt firmware from a browser afterwards (step 2). To have the file at hand even without internet, the script downloads both images from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest), plain and `full` with VPN, and verifies them against the release checksums. Need only one? Pass it as the second argument: `sh install.sh root@192.168.31.1 full` (or `plain`).
 
 If the image does not download, or you already have it, see [If the image does not download](#if-the-image-does-not-download).
 
@@ -113,7 +113,7 @@ Then it asks for the router password once and:
 
 **Step 2. Firmware in the browser.**
 1. Set the computer's address manually: IP `192.168.1.10`, mask `255.255.255.0`. On macOS: System Settings → Network → (adapter) → Details → TCP/IP → Configure IPv4: Manually. On WSL set the address in Windows; in the browser the file is under `\\wsl$\<distro>\home\…`.
-2. Open `http://192.168.1.1`, choose the image from step 1 (the installer prints its full path at the end), click **Upload**, then **Proceed**.
+2. Open `http://192.168.1.1`, choose one of the images from step 1, plain or `full` (the installer prints their paths at the end), click **Upload**, then **Proceed**.
 3. Wait 5 minutes and do not cut the power. The router reboots into OpenWrt by itself.
 
 **Step 3. Setup.** Switch the computer back to an automatic address (DHCP), open `http://192.168.1.1` and set a password. Then in **Network → Wireless** set the country, the network name and password and click **Enable** on both radios (Wi-Fi is off by default). All four ports are LAN by default: if this router connects to your provider, go to **Network → Interfaces**, first remove the provider's port (for example the 2.5G one) from the LAN bridge (**Devices → br-lan → Bridge ports**), then add a `wan` interface with protocol **DHCP client** on that port.
@@ -148,7 +148,7 @@ Step-by-step install, the manual flash chip check and the `READ-ONLY` case: [doc
 |---|---|
 | Image and `SHA256SUMS` in `firmware/openwrt/` | checks the checksum and uses the image |
 | Only the image, no `SHA256SUMS` | checks that the image is for the BE5000, warns `checksum NOT checked` and uses it |
-| Both images in the folder | asks which one; or pass `plain` / `full` as the second argument |
+| You need only one image | pass `plain` or `full` as the second argument, the other one is not downloaded |
 | The image is somewhere else | give its path: `BE5000_IMAGE=/path/to/image.bin sh install.sh root@192.168.31.1` |
 | Image from an older release, internet works | downloads the image of the latest release |
 | Checksum does not match | stops: the file is damaged or from another release; download it again |

@@ -3,8 +3,9 @@
 # Wi-Fi calibration, bootloader. Asks for the router password once and asks
 # YES before writing anything.
 #   sh install.sh [root@192.168.31.1] [plain|full]
-# plain: the plain image; full: with VPN (AmneziaWG, Xray, zapret, DNS over HTTPS).
-# Without the second argument the script asks; BE5000_IMAGE=path uses an image you downloaded.
+# The OpenWrt image itself is installed from a browser after this script. The script
+# gets both images ready: plain and full (with VPN: AmneziaWG, Xray, zapret, DNS over
+# HTTPS), or only one with plain|full; BE5000_IMAGE=path uses an image you downloaded.
 # Needs ssh and curl on the PC. Works with any scp/sftp-less router.
 set -eu
 
@@ -30,10 +31,10 @@ upload() { $SSH "$R" "cat > /tmp/$(basename "$1")" < "$1"; }   # no scp: works w
 sha256() { if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$1"; else sha256sum "$1"; fi | cut -d' ' -f1; }
 trap 'ssh $SSH_OPTS -O exit "$R" 2>/dev/null || true' EXIT
 
-step "1/6 OpenWrt image"
-# An image downloaded by hand is used as is: put it into firmware/openwrt/ (both the
-# plain and the -full- sysupgrade image work) or pass its path in BE5000_IMAGE.
-# SHA256SUMS from the release next to it lets the script check it without internet.
+step "1/6 OpenWrt images for the browser step at the end"
+# install.sh itself writes only the calibration and the bootloader; the OpenWrt image
+# is uploaded from a browser after it. Images downloaded by hand are used as is: put
+# them into firmware/openwrt/ (with SHA256SUMS from the same release next to them).
 mkdir -p firmware/openwrt
 SUMS=firmware/openwrt/SHA256SUMS
 FRESH=
@@ -43,53 +44,55 @@ else
 	rm -f "$SUMS.new"
 	[ -f "$SUMS" ] && echo "could not download SHA256SUMS, using $SUMS from disk"
 fi
-FILE=${BE5000_IMAGE:-}
-if [ -z "$FILE" ] && [ -z "$VARIANT" ]; then
-	# one image already in firmware/openwrt/: take it; otherwise ask
-	n=0
-	for f in "firmware/openwrt/$IMG_PLAIN" "firmware/openwrt/$IMG_FULL"; do [ -f "$f" ] && { n=$((n + 1)); one=$f; }; done
-	if [ $n = 1 ]; then
-		FILE=$one
-		case $one in *-full-*) VARIANT=full ;; *) VARIANT=plain ;; esac
-	elif [ -t 0 ]; then
-		printf 'Which OpenWrt image?\n  1 - plain\n  2 - full: with VPN (AmneziaWG, Xray, zapret, DNS over HTTPS)\nChoose 1 or 2 [1]: '
-		read -r ans || ans=
-		case $ans in *2*) VARIANT=full ;; *) VARIANT=plain ;; esac
-	else
-		VARIANT=plain
-	fi
-fi
-[ "$VARIANT" = full ] && IMG=$IMG_FULL || IMG=$IMG_PLAIN
-[ -n "$FILE" ] || { [ -f "firmware/openwrt/$IMG" ] && FILE=firmware/openwrt/$IMG; }
-[ -z "$FILE" ] || [ -f "$FILE" ] || fail "BE5000_IMAGE=$FILE: no such file"
-if [ -n "$FILE" ]; then
+
+# check_image FILE: 0 - good, 1 - outdated (deleted, download again); stops on a bad file
+check_image() {
 	want=
-	for sf in "$SUMS" "$(dirname "$FILE")/SHA256SUMS"; do
-		[ -z "$want" ] && [ -f "$sf" ] && want=$(grep " $(basename "$FILE")\$" "$sf" | cut -d' ' -f1)
+	for sf in "$SUMS" "$(dirname "$1")/SHA256SUMS"; do
+		[ -z "$want" ] && [ -f "$sf" ] && want=$(grep " $(basename "$1")\$" "$sf" | cut -d' ' -f1)
 	done
 	if [ -z "$want" ]; then
-		grep -aq 'xiaomi,be5000' "$FILE" || fail "$FILE is not an OpenWrt image for the Xiaomi BE5000"
-		echo "$FILE: image for the BE5000, checksum NOT checked (no SHA256SUMS for it)"
-	elif [ "$(sha256 "$FILE")" = "$want" ]; then
-		echo "$FILE: checksum OK"
+		grep -aq 'xiaomi,be5000' "$1" || fail "$1 is not an OpenWrt image for the Xiaomi BE5000"
+		echo "$1: image for the BE5000, checksum NOT checked (no SHA256SUMS for it)"
+	elif [ "$(sha256 "$1")" = "$want" ]; then
+		echo "$1: checksum OK"
 	elif [ -z "${BE5000_IMAGE:-}" ] && [ -n "$FRESH" ]; then
-		echo "$FILE: not the latest release, downloading the new image"
-		rm -f "$FILE"; FILE=
+		echo "$1: not the latest release, downloading the new image"
+		rm -f "$1"; return 1
 	else
-		fail "$FILE does not match $SUMS: the file is damaged or from another release. Download the image again, or put the SHA256SUMS of its own release next to it"
+		fail "$1 does not match SHA256SUMS: the file is damaged or from another release. Download it again, or put the SHA256SUMS of its own release next to it"
 	fi
+}
+
+# get_image NAME: a checked firmware/openwrt/NAME, from disk or downloaded; 1 if not possible
+get_image() {
+	f=firmware/openwrt/$1
+	[ -f "$f" ] && check_image "$f" && return 0
+	[ -f "$SUMS" ] || { echo "$1: could not download SHA256SUMS from the release"; return 1; }
+	want=$(grep " $1\$" "$SUMS" | cut -d' ' -f1)
+	[ -n "$want" ] || { echo "$1: not listed in $SUMS"; return 1; }
+	curl -fL --progress-bar -o "$f.part" "$REL/$1" || { rm -f "$f.part"; echo "$1: download failed"; return 1; }
+	[ "$(sha256 "$f.part")" = "$want" ] || { rm -f "$f.part"; echo "$1: the download does not match SHA256SUMS"; return 1; }
+	mv "$f.part" "$f"
+	echo "$f: downloaded, checksum OK"
+}
+
+show() { case $1 in /*|?:*) echo "$1" ;; *) echo "$HERE/$1" ;; esac; }
+IMAGES=
+if [ -n "${BE5000_IMAGE:-}" ]; then
+	[ -f "$BE5000_IMAGE" ] || fail "BE5000_IMAGE=$BE5000_IMAGE: no such file"
+	check_image "$BE5000_IMAGE"
+	IMAGES="     $(show "$BE5000_IMAGE")"
+else
+	case $VARIANT in plain) want_list=$IMG_PLAIN ;; full) want_list=$IMG_FULL ;; *) want_list="$IMG_PLAIN $IMG_FULL" ;; esac
+	for name in $want_list; do
+		get_image "$name" || continue
+		[ "$name" = "$IMG_FULL" ] && label="full, with VPN (AmneziaWG, Xray, zapret, DNS over HTTPS)" || label="plain"
+		IMAGES="$IMAGES
+     $label: $(show "firmware/openwrt/$name")"
+	done
+	[ -n "$IMAGES" ] || fail "no OpenWrt image is ready. Download $IMG_PLAIN or $IMG_FULL (and SHA256SUMS) from https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest by hand, put them into firmware/openwrt/ and run again"
 fi
-if [ -z "$FILE" ]; then
-	[ -f "$SUMS" ] || fail "could not download SHA256SUMS from the release. Download $IMG (and SHA256SUMS) from https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest by hand, put them into firmware/openwrt/ and run again"
-	want=$(grep " $IMG\$" "$SUMS" | cut -d' ' -f1)
-	[ -n "$want" ] || fail "$IMG is not listed in $SUMS; open an issue"
-	FILE=firmware/openwrt/$IMG
-	curl -fL --progress-bar -o "$FILE.part" "$REL/$IMG" || fail "download failed. Download $IMG from https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest by hand, put it into firmware/openwrt/ and run again"
-	[ "$(sha256 "$FILE.part")" = "$want" ] || { rm -f "$FILE.part"; fail "the downloaded image does not match SHA256SUMS; run again"; }
-	mv "$FILE.part" "$FILE"
-	echo "$FILE: downloaded, checksum OK"
-fi
-case $FILE in /*|?:*) SHOW=$FILE ;; *) SHOW=$HERE/$FILE ;; esac
 
 step "2/6 Connecting to $R (enter the router password once)"
 $SSH "$R" true || fail "could not SSH into $R. Check the address and password: sh install.sh root@ADDRESS. If the router already rebooted after a previous run, continue with the browser step from the README"
@@ -147,7 +150,7 @@ cat <<EOT
 Done, the router is rebooting. Now flash the firmware from a browser:
   1. Set a static address on the PC's wired adapter: IP 192.168.1.10, netmask 255.255.255.0.
   2. After a minute, open http://192.168.1.1
-  3. Choose the file $SHOW,
+  3. Choose one of the images:$IMAGES
      click Upload, then Proceed. Wait 5 minutes, do not power off.
   4. Switch the PC back to automatic addressing (DHCP) and open http://192.168.1.1 again.
 EOT
