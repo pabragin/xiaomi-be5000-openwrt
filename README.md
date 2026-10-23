@@ -101,7 +101,12 @@ sh install.sh root@192.168.31.1        # 192.168.31.1 is the Xiaomi stock addres
 
 On Windows, in a command prompt in the repository folder: `install.bat root@192.168.31.1` (or double-click `install.bat`, which uses `192.168.31.1`). It runs the same `install.sh` through Git Bash, or WSL without it.
 
-The script downloads the OpenWrt image from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) and verifies it against the release checksums. Then it asks for the router password once and:
+The script asks which image you want: plain or `full` with VPN (or pass it as the second argument: `sh install.sh root@192.168.31.1 full`, or `plain`). Then it downloads the image from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) and verifies it against the release checksums.
+
+- **Already downloaded the image:** put it into `firmware/openwrt/` (ideally with `SHA256SUMS` from the same release) or give its path: `BE5000_IMAGE=/path/to/image.bin sh install.sh root@192.168.31.1`. The script then downloads nothing and only checks the file. Without `SHA256SUMS` it makes sure the image is for the BE5000 and warns that the checksum was not checked.
+- **GitHub not reachable:** the same: download the image and `SHA256SUMS` from the release page by hand and put them into `firmware/openwrt/`.
+
+Then it asks for the router password once and:
 1. checks the flash chip and the partitions (if the bootloader does not support the chip, it stops before writing anything);
 2. saves a full flash backup to `be5000-backup-<date>` (keep it: without it you cannot go back to Xiaomi firmware);
 3. asks for `YES`, moves the Wi-Fi calibration and writes the bootloader;
@@ -109,7 +114,7 @@ The script downloads the OpenWrt image from the [latest release](https://github.
 
 **Step 2. Firmware in the browser.**
 1. Set the computer's address manually: IP `192.168.1.10`, mask `255.255.255.0`. On macOS: System Settings → Network → (adapter) → Details → TCP/IP → Configure IPv4: Manually. On WSL set the address in Windows; in the browser the file is under `\\wsl$\<distro>\home\…`.
-2. Open `http://192.168.1.1`, choose `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` downloaded in step 1 (the installer prints the full path), click **Upload**, then **Proceed**.
+2. Open `http://192.168.1.1`, choose the image from step 1 (the installer prints its full path at the end), click **Upload**, then **Proceed**.
 3. Wait 5 minutes and do not cut the power. The router reboots into OpenWrt by itself.
 
 **Step 3. Setup.** Switch the computer back to an automatic address (DHCP), open `http://192.168.1.1` and set a password. Then in **Network → Wireless** set the country, the network name and password and click **Enable** on both radios (Wi-Fi is off by default). All four ports are LAN by default: if this router connects to your provider, go to **Network → Interfaces**, first remove the provider's port (for example the 2.5G one) from the LAN bridge (**Devices → br-lan → Bridge ports**), then add a `wan` interface with protocol **DHCP client** on that port.
@@ -172,7 +177,7 @@ Details, with photos and troubleshooting: [docs/en/recovery-uart.md](docs/en/rec
 |---|---|---|
 | [`firmware/bootloader/be5000-bootloader-w25n01kv.bin`](firmware/bootloader/) | 512 KB bootloader: BL2 (57 NAND chips) + BL31 + U-Boot | flash `0x0` (SSH: `be5000-install.sh bootloader`; UART: XMODEM #2) |
 | [`firmware/bootloader/be5000-uart-bl2-stage1.bin`](firmware/bootloader/) | the same BL2 in a mini FIP | UART only, XMODEM #1 to the BootROM |
-| [`openwrt-…-squashfs-sysupgrade.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | OpenWrt ([about the build](firmware/openwrt/README.md)): FIT kernel + squashfs. In the release, `install.sh` downloads it | `firmware` partition `0xC0000` (web failsafe or `sysupgrade`) |
+| [`openwrt-…-squashfs-sysupgrade.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | OpenWrt ([about the build](firmware/openwrt/README.md)): FIT kernel + squashfs. In the release; `install.sh` downloads it or takes the one in `firmware/openwrt/` | `firmware` partition `0xC0000` (web failsafe or `sysupgrade`) |
 | [`openwrt-…-full-squashfs-sysupgrade.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | the same with VPN ([two images](#two-images)) | the same |
 | [`openwrt-…-initramfs-kernel.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | OpenWrt in RAM for testing and recovery. In the release | TFTP → `bootm`, does not touch flash |
 | [`install.sh`](install.sh) | one-command install: check, backup, calibration, bootloader | runs on the computer |

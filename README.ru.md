@@ -101,7 +101,12 @@ sh install.sh root@192.168.31.1        # 192.168.31.1 — адрес стока 
 
 На Windows в командной строке из папки репозитория: `install.bat root@192.168.31.1` (или двойной щелчок по `install.bat`, тогда адрес по умолчанию `192.168.31.1`). Он запускает тот же `install.sh` через Git Bash, а без него — через WSL.
 
-Скрипт скачает образ OpenWrt из [последнего релиза](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) и сверит его с контрольными суммами релиза. Потом один раз спросит пароль роутера и:
+Скрипт спросит, какой образ нужен: обычный или `full` с VPN (выбор можно сразу передать вторым аргументом: `sh install.sh root@192.168.31.1 full`, или `plain`). Затем скачает образ из [последнего релиза](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) и сверит его с контрольными суммами релиза.
+
+- **Образ уже скачан:** положите его в `firmware/openwrt/` (лучше вместе с `SHA256SUMS` из того же релиза) или укажите путь: `BE5000_IMAGE=/путь/к/образу.bin sh install.sh root@192.168.31.1`. Тогда скрипт ничего не скачивает, а только проверяет файл. Без `SHA256SUMS` он убедится, что это образ для BE5000, и предупредит, что контрольная сумма не проверена.
+- **GitHub недоступен:** то же самое — скачайте образ и `SHA256SUMS` со страницы релиза вручную и положите в `firmware/openwrt/`.
+
+Потом скрипт один раз спросит пароль роутера и:
 1. проверит чип флеша и разделы (если загрузчик не поддерживает чип, остановится, ничего не записав);
 2. сохранит полный бэкап флеша в папку `be5000-backup-<дата>` (её нужно сохранить: без неё прошивку Xiaomi не вернуть);
 3. спросит `YES`, перенесёт калибровку Wi-Fi и запишет загрузчик;
@@ -109,7 +114,7 @@ sh install.sh root@192.168.31.1        # 192.168.31.1 — адрес стока 
 
 **Шаг 2. Прошивка через браузер.**
 1. Задайте компьютеру адрес вручную: IP `192.168.1.10`, маска `255.255.255.0`. На macOS: «Настройки → Сеть → (адаптер) → Подробнее → TCP/IP → Вручную». В WSL адрес задаётся в Windows, а файл в браузере лежит в `\\wsl$\<дистрибутив>\home\…`.
-2. Откройте `http://192.168.1.1`, выберите файл `firmware/openwrt/openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin`, скачанный на шаге 1 (установщик печатает полный путь), нажмите **Upload**, затем **Proceed**.
+2. Откройте `http://192.168.1.1`, выберите образ с шага 1 (установщик в конце печатает полный путь к нему), нажмите **Upload**, затем **Proceed**.
 3. Подождите 5 минут и не выключайте питание. Роутер сам перезагрузится в OpenWrt.
 
 **Шаг 3. Настройка.** Верните компьютеру автоматический адрес (DHCP), откройте `http://192.168.1.1` и задайте пароль. Затем в **Network → Wireless** укажите страну, имя и пароль сети и нажмите **Enable** у обоих радио (Wi-Fi по умолчанию выключен). Все четыре порта по умолчанию LAN: если этот роутер подключается к провайдеру, в **Network → Interfaces** сначала уберите порт провайдера (например 2.5G) из моста LAN (**Devices → br-lan → Bridge ports**), затем добавьте интерфейс `wan` с протоколом **DHCP client** на этом порту.
@@ -172,7 +177,7 @@ ssh root@192.168.1.1 sysupgrade /tmp/sysupgrade.bin
 |---|---|---|
 | [`firmware/bootloader/be5000-bootloader-w25n01kv.bin`](firmware/bootloader/) | загрузчик 512 КБ: BL2 (57 чипов NAND) + BL31 + U-Boot | флеш `0x0` (SSH: `be5000-install.sh bootloader`; UART: XMODEM №2) |
 | [`firmware/bootloader/be5000-uart-bl2-stage1.bin`](firmware/bootloader/) | тот же BL2 в мини-FIP | только UART, XMODEM №1 в BootROM |
-| [`openwrt-…-squashfs-sysupgrade.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | OpenWrt ([описание сборки](firmware/openwrt/README.md)): ядро FIT + squashfs. Лежит в релизе, `install.sh` скачивает его сам | раздел `firmware` `0xC0000` (веб-failsafe или `sysupgrade`) |
+| [`openwrt-…-squashfs-sysupgrade.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | OpenWrt ([описание сборки](firmware/openwrt/README.md)): ядро FIT + squashfs. Лежит в релизе; `install.sh` скачивает его сам или берёт из `firmware/openwrt/` | раздел `firmware` `0xC0000` (веб-failsafe или `sysupgrade`) |
 | [`openwrt-…-full-squashfs-sysupgrade.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | то же с VPN ([два образа](#два-образа)) | так же |
 | [`openwrt-…-initramfs-kernel.bin`](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest) | OpenWrt в RAM для проверки и восстановления. Лежит в релизе | TFTP → `bootm`, флеш не трогает |
 | [`install.sh`](install.sh) | установка одной командой: проверка, бэкап, калибровка, загрузчик | запускается на компьютере |

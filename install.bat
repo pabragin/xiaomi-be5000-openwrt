@@ -1,7 +1,7 @@
 @echo off
 rem OpenWrt for Xiaomi BE5000: run install.sh on Windows.
 rem Uses Git Bash (comes with Git for Windows) or, without it, WSL.
-rem   install.bat [root@192.168.31.1]
+rem   install.bat [root@192.168.31.1] [plain|full]
 setlocal
 cd /d "%~dp0"
 set "BASH_EXE="
