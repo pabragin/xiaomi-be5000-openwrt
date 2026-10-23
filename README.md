@@ -225,6 +225,25 @@ Checksums and origin of the binaries: [firmware/bootloader/README.md](firmware/b
 
 ![Flash layout](images/flash-layout.svg)
 
+<details>
+<summary>Why <code>/overlay</code> has about 79 MiB, not 93</summary>
+
+The `ubi-data` partition is 93.1 MiB, but part of it goes to UBI and UBIFS metadata (numbers from a router with a W25N01KV and no bad blocks):
+
+| Stage | Left | Where it went |
+|---|---|---|
+| `ubi-data` partition | 93.1 MiB (745 blocks of 128 KiB) | — |
+| UBI headers | 90.2 MiB | 4 KiB (two 2 KiB pages) of every block hold UBI headers, 124 KiB of 128 are usable |
+| UBI reserve | 87.4 MiB (`rootfs_data` volume, 722 blocks) | 19 blocks to replace future bad blocks, 4 more for the volume table and atomic updates |
+| UBIFS metadata | 86 MiB (711 blocks) | index, free space tables, log |
+| UBIFS journal | ≈79 MiB, what `df` shows for `/overlay` | 4 MiB for the write journal |
+| Root reserve | 74.6 MiB in the "Available" column | UBIFS keeps 4 MiB for root; everything on OpenWrt runs as root, so almost all 79 MiB are usable |
+
+- **The bad block reserve and the journal** protect the flash from wear and the settings from a sudden power loss. Shrinking them is not worth it: 2–3 MiB at most.
+- **More fits in practice:** UBIFS compresses files on the fly, text configs and scripts take 2–3 times less than their size.
+- **On a chip with factory bad blocks** there is a little less: 128 KiB less per bad block.
+</details>
+
 - **What is in the bootloader.** BL2 with a list of 57 NAND chips (including W25N01KV), BL31 and xinyooo U-Boot 2026.01 with autoboot and web failsafe.
 - **Why UART needs two files.** The BootROM accepts at most `0x1F800` bytes over XMODEM, and only a FIP with a single BL2. Then BL2 itself prompts `Press x to update firmware`, accepts the full 512 KB image and writes it to flash.
 
