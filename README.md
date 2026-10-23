@@ -226,6 +226,16 @@ Checksums and origin of the binaries: [firmware/bootloader/README.md](firmware/b
 ![Flash layout](images/flash-layout.svg)
 
 <details>
+<summary>What the first block of <code>art</code> is for</summary>
+
+The `art` partition (`0x80000`, 256 KiB) is two 128 KiB blocks, but OpenWrt uses only the second one: the Wi-Fi calibration is at `0xA0000` (offset `0x20000` inside the partition).
+
+- **The first block is unused:** OpenWrt neither reads nor writes it. It keeps the stock Xiaomi environment data (`uart_en`, `telnet_en`, the serial number and so on): on stock this address was the `u-boot-env` partition. The installer does not erase it, so the router's serial number stays on the flash.
+- **Where it comes from:** the `art` layout is taken from the first OpenWrt builds for the BE5000 (xinyooo and iscle), where the partition is also `0x80000`, 256 KiB, with the calibration at `0xA0000`.
+- **Why it is not removed:** users moving from xinyooo or iscle with `sysupgrade -n` already have the calibration at `0xA0000` and the firmware from `0xC0000`. Moving the layout would need the calibration moved and a new bootloader, for 128 KiB.
+</details>
+
+<details>
 <summary>Why <code>/overlay</code> has about 79 MiB, not 93</summary>
 
 The `ubi-data` partition is 93.1 MiB, but part of it goes to UBI and UBIFS metadata (numbers from a router with a W25N01KV and no bad blocks):
