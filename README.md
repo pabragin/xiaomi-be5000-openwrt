@@ -52,6 +52,10 @@ Every release has two images. Both install the same way, and `sysupgrade` moves 
 | `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` | plain: Wi-Fi, NPU offload, LuCI |
 | `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` | VPN: the same plus AmneziaWG 3.1, Xray from the Amnezia fork with luci-app-xray, zapret, https-dns-proxy (DNS over HTTPS) and pbr (policy routing), all with LuCI |
 
+All the VPN services of the VPN image are in the LuCI **Services** menu: AmneziaWG, zapret, DNS over HTTPS, policy routing and Xray.
+
+<img src="images/luci-services-menu.png" alt="LuCI Services menu of the VPN image: AmneziaWG, Zapret, HTTPS DNS Proxy, Policy Routing, Xray" width="640">
+
 - **Everything is off in the VPN image.** The packages are installed, but no service runs until it is set up and enabled in LuCI. DNS over HTTPS is off too, because once enabled it takes over the DNS of the whole network.
 - **Xray in LuCI:** **Services → Xray** ([luci-app-xray](https://github.com/yichya/luci-app-xray), English only). For a server with xhttp choose the transport **SplitHTTP (XHTTP)**. Once enabled it proxies the LAN transparently; DNS and the routing rules are on its own tabs.
 - **On the plain image** the same packages install with `apk add` from [this build's feed](https://pabragin.github.io/xiaomi-be5000-openwrt/).

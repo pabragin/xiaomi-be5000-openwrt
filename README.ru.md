@@ -52,6 +52,10 @@
 | `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` | обычный: Wi-Fi, ускорение NPU, LuCI |
 | `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` | с VPN: то же плюс AmneziaWG 3.1, Xray из форка Amnezia с luci-app-xray, zapret, https-dns-proxy (DNS по HTTPS) и pbr (маршрутизация по правилам), все с LuCI |
 
+Все VPN-службы образа с VPN собраны в меню LuCI **Службы**: AmneziaWG, zapret, DNS по HTTPS, маршрутизация по правилам и Xray.
+
+<img src="images/luci-services-menu.png" alt="Меню «Службы» в LuCI образа с VPN: AmneziaWG, Zapret, HTTPS DNS Proxy, Policy Routing, Xray" width="640">
+
 - **В образе с VPN всё выключено.** Пакеты стоят, но службы не запущены: их включают и настраивают в LuCI. DNS по HTTPS тоже выключен, потому что после включения он забирает себе DNS всей сети.
 - **Xray в LuCI:** **Службы → Xray** ([luci-app-xray](https://github.com/yichya/luci-app-xray), только по-английски). Для сервера с xhttp выберите транспорт **SplitHTTP (XHTTP)**. После включения он прозрачно проксирует LAN; DNS и правила маршрутизации — на его собственных вкладках.
 - **В обычный образ** те же пакеты ставятся через `apk add` из [источника этой сборки](https://pabragin.github.io/xiaomi-be5000-openwrt/).
