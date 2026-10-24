@@ -26,14 +26,14 @@ Everything below is tested on a BE5000 running this firmware.
 
 | What | How it works |
 |---|---|
-| **System** | OpenWrt SNAPSHOT `r36539+1059`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
+| **System** | OpenWrt SNAPSHOT `r36539+1064`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
 | **5 GHz Wi-Fi** | 3x3, 160 MHz, Wi-Fi 6/7. A 2x2 MacBook (2 streams, 2402 Mbit/s link): **1897 Mbit/s** download, **1778 Mbit/s** upload ([test](docs/en/technical.md#speed)) |
 | **Wi-Fi 7** | WPA3 with GCMP-256 and MLO (2.4 + 5 GHz) also go through the NPU: a Wi-Fi 7 client on WPA3 uploads 1560–1760 Mbit/s |
 | **2.4 GHz Wi-Fi** | 2x2, works, 20/40 MHz |
 | **Hardware offload** | Wi-Fi ↔ wired traffic goes through the PPE and the NPU; the CPU is ~10% busy at full speed. The NPU can be turned off in LuCI when a fast VPN matters more ([details](#npu-offload-and-vpn)) |
 | **VPN** (VPN image) | AmneziaWG 3.1, Xray from the Amnezia fork (VLESS, Reality, xhttp), zapret, https-dns-proxy, pbr; all with LuCI ([details](#two-images)) |
 | **Roaming** | 802.11r: phones and laptops move seamlessly between the BE5000 and another OpenWrt AP with the same network |
-| **Ports** | three 1 Gbit/s ports and one 2.5 Gbit/s port, all in one network |
+| **Ports** | 2.5 Gbit/s WAN (DHCP client) and three 1 Gbit/s LAN ports |
 | **Settings** | survive reboots and power cuts, and are kept across firmware upgrades; about 79 MiB free in `/overlay` for settings and packages |
 | **Temperature** | SoC sensors in `/sys/class/thermal` (63–69 °C); the CPU is throttled at 105 °C |
 | **Reboot** | warm and cold reboots without hangs; if the system hangs, the watchdog reboots it after ~30 s. Except the reboot right after `sysupgrade` ([known issues](#known-issues)) |
@@ -99,7 +99,7 @@ git clone https://github.com/pabragin/xiaomi-be5000-openwrt && cd xiaomi-be5000-
 sh install.sh root@192.168.31.1        # 192.168.31.1 is the Xiaomi stock address; usually 192.168.1.1 on OpenWrt
 ```
 
-On Windows, in a command prompt in the repository folder: `install.bat root@192.168.31.1` (or double-click `install.bat`, which uses `192.168.31.1`). It runs the same `install.sh` through Git Bash, or WSL without it.
+On Windows, in a command prompt in the repository folder: `install.bat root@192.168.31.1` (or double-click `install.bat`, which uses `192.168.31.1`). It runs the same `install.sh` through Git Bash, or WSL without it. The install is tested on Windows 8.1 with Git for Windows.
 
 The script itself writes only the calibration and the bootloader; you upload the OpenWrt firmware from a browser afterwards (step 2). To have the file at hand even without internet, the script downloads both images from the [latest release](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/latest), plain and `full` with VPN, and verifies them against the release checksums. Need only one? Pass it as the second argument: `sh install.sh root@192.168.31.1 full` (or `plain`).
 
@@ -113,10 +113,10 @@ Then it asks for the router password once and:
 
 **Step 2. Firmware in the browser.**
 1. Set the computer's address manually: IP `192.168.1.10`, mask `255.255.255.0`. On macOS: System Settings → Network → (adapter) → Details → TCP/IP → Configure IPv4: Manually. On WSL set the address in Windows; in the browser the file is under `\\wsl$\<distro>\home\…`.
-2. Open `http://192.168.1.1`, choose one of the images from step 1, plain or `full` (the installer prints their paths at the end), click **Upload**, then **Proceed**.
+2. Open `http://192.168.1.1` in a current browser (Internet Explorer and old Chromium versions do not show the upload and do not open LuCI), choose one of the images from step 1, plain or `full` (the installer prints their paths at the end), click **Upload**, then **Proceed**.
 3. Wait 5 minutes and do not cut the power. The router reboots into OpenWrt by itself.
 
-**Step 3. Setup.** Switch the computer back to an automatic address (DHCP), open `http://192.168.1.1` and set a password. Then in **Network → Wireless** set the country, the network name and password and click **Enable** on both radios (Wi-Fi is off by default). All four ports are LAN by default: if this router connects to your provider, go to **Network → Interfaces**, first remove the provider's port (for example the 2.5G one) from the LAN bridge (**Devices → br-lan → Bridge ports**), then add a `wan` interface with protocol **DHCP client** on that port.
+**Step 3. Setup.** Switch the computer back to an automatic address (DHCP), open `http://192.168.1.1` and set a password. Then in **Network → Wireless** set the country, the network name and password and click **Enable** on both radios (Wi-Fi is off by default). The 2.5G port is WAN and gets its address from the provider by DHCP; the three 1G ports are LAN. To use the router as an access point behind another router, delete the `wan` and `wan6` interfaces in **Network → Interfaces**, then add `eth1` to **Devices → br-lan → Bridge ports**: never keep `eth1` in the bridge and in `wan` at the same time, or the LAN merges with the upstream network and `192.168.1.1` becomes unreachable. WAN and LAN use the factory MAC addresses from the stock U-Boot environment, which stays in the first block of `art`.
 
 > [!CAUTION]
 > If the power is lost while the bootloader is being written, or the router does not show up on the network after step 1, only UART can bring it back (section 4).
@@ -228,9 +228,9 @@ Checksums and origin of the binaries: [firmware/bootloader/README.md](firmware/b
 <details>
 <summary>What the first block of <code>art</code> is for</summary>
 
-The `art` partition (`0x80000`, 256 KiB) is two 128 KiB blocks, but OpenWrt uses only the second one: the Wi-Fi calibration is at `0xA0000` (offset `0x20000` inside the partition).
+The `art` partition (`0x80000`, 256 KiB) is two 128 KiB blocks: the Wi-Fi calibration is in the second one, at `0xA0000` (offset `0x20000` inside the partition).
 
-- **The first block is unused:** OpenWrt neither reads nor writes it. It keeps the stock Xiaomi environment data (`uart_en`, `telnet_en`, the serial number and so on): on stock this address was the `u-boot-env` partition. The installer does not erase it, so the router's serial number stays on the flash.
+- **The first block is the stock Xiaomi environment:** on stock this address was the `u-boot-env` partition, with the factory MAC addresses (`ethaddr`, `ethaddr_wan`), the serial number, `uart_en`, `telnet_en` and so on. The installer does not erase it. OpenWrt never writes it and reads only the MAC addresses for LAN and WAN at the first boot.
 - **Where it comes from:** the `art` layout is taken from the first OpenWrt builds for the BE5000 (xinyooo and iscle), where the partition is also `0x80000`, 256 KiB, with the calibration at `0xA0000`.
 - **Why it is not removed:** users moving from xinyooo or iscle with `sysupgrade -n` already have the calibration at `0xA0000` and the firmware from `0xC0000`. Moving the layout would need the calibration moved and a new bootloader, for 128 KiB.
 </details>
