@@ -6,7 +6,7 @@
 > **TL;DR.** This repository shows how to install OpenWrt on the Xiaomi BE5000 with only root SSH access, and how to recover the router over UART if the bootloader is broken.
 > - **Three steps:** one command on the computer, one file upload in the browser, Wi-Fi setup. The installer checks the flash chip first: the bootloader here knows 57 NAND chips, including the **Winbond W25N01KV** that the xinyooo and X-WRT bootloaders crash on (`PANIC at PC : 0x810017a9`).
 > - **Wi-Fi speed:** 1897 Mbit/s download and 1778 Mbit/s upload through the BE5000 (OpenSpeedTest, a 2x2 160 MHz MacBook to a wired PC).
-> - **Two images:** a plain one and one with VPN (AmneziaWG 3.1, Xray from the Amnezia fork, zapret, DNS over HTTPS, policy routing, all with LuCI). With the NPU turned off, through a VPN on the router itself: AmneziaWG 251 Mbit/s download and 236 Mbit/s upload, Xray (VLESS + Reality + xhttp) 104 and 116 Mbit/s.
+> - **Two images:** a plain one and one with VPN (AmneziaWG 3.1, Xray from the Amnezia fork, zapret, DNS over HTTPS, policy routing, all with LuCI). Through a VPN on the router itself, faster with the NPU off: AmneziaWG 251 Mbit/s download and 236 Mbit/s upload (212 and 178 with the NPU on), Xray (VLESS + Reality + xhttp) 137 and 117 Mbit/s (121 and 119).
 > - **Tested on hardware:** BE5000 (AN7563PT, W25N01KV, 512 MB DDR3): SSH install from Xiaomi stock firmware, UART recovery, web failsafe install, cold boot, our own OpenWrt build with settings in UBI, Wi-Fi calibration built from the router's own Factory data.
 
 ## Contents
@@ -26,7 +26,7 @@ Everything below is tested on a BE5000 running this firmware.
 
 | What | How it works |
 |---|---|
-| **System** | OpenWrt SNAPSHOT `r36539+1065`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
+| **System** | OpenWrt SNAPSHOT `r36539+1067`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
 | **5 GHz Wi-Fi** | 3x3, 160 MHz, Wi-Fi 6/7. A 2x2 MacBook (2 streams, 2402 Mbit/s link): **1897 Mbit/s** download, **1778 Mbit/s** upload ([test](docs/en/technical.md#speed)) |
 | **Wi-Fi 7** | WPA3 with GCMP-256 and MLO (2.4 + 5 GHz) also go through the NPU: a Wi-Fi 7 client on WPA3 uploads 1560–1760 Mbit/s |
 | **2.4 GHz Wi-Fi** | 2x2, works, 20/40 MHz |
@@ -63,18 +63,18 @@ The switch is in LuCI: **Network → NPU acceleration**. The NPU is on by defaul
 | What | NPU on | NPU off |
 |---|---|---|
 | Wi-Fi ↔ wired network | up to ~1.9 Gbit/s | ~1.1 Gbit/s |
-| Traffic of the router itself over Wi-Fi (VPN, zapret, services) | ~150 Mbit/s | up to ~900 Mbit/s |
-| AmneziaWG on the router | 18–175 / 11–22 Mbit/s | 251 / 236 Mbit/s |
-| Xray on the router (VLESS + Reality + xhttp) | ~90 / ~130 Mbit/s | 104 / 116 Mbit/s |
+| Traffic of the router itself over Wi-Fi (VPN, zapret, services) | ~450 Mbit/s | up to ~900 Mbit/s |
+| AmneziaWG on the router | 212 / 178 Mbit/s | 251 / 236 Mbit/s |
+| Xray on the router (VLESS + Reality + xhttp) | 121 / 119 Mbit/s | 137 / 117 Mbit/s |
 
-| NPU on: Wi-Fi ↔ wired | NPU off: through AmneziaWG on the router | NPU off: through Xray on the router |
-|---|---|---|
-| <img src="images/openspeedtest-be5000-npu-on.png" alt="OpenSpeedTest through the BE5000 with the NPU: 1897 Mbit/s download, 1778 Mbit/s upload" width="320"> | <img src="images/openspeedtest-be5000-amneziawg.png" alt="OpenSpeedTest through AmneziaWG on the BE5000 without the NPU: 251 Mbit/s download, 236 Mbit/s upload" width="320"> | <img src="images/openspeedtest-be5000-xray.png" alt="OpenSpeedTest through Xray on the BE5000 without the NPU: 104 Mbit/s download, 116 Mbit/s upload" width="200"> |
+| NPU on: Wi-Fi ↔ wired | NPU off: through AmneziaWG on the router |
+|---|---|
+| <img src="images/openspeedtest-be5000-npu-on.png" alt="OpenSpeedTest through the BE5000 with the NPU: 1897 Mbit/s download, 1778 Mbit/s upload" width="320"> | <img src="images/openspeedtest-be5000-amneziawg.png" alt="OpenSpeedTest through AmneziaWG on the BE5000 without the NPU: 251 Mbit/s download, 236 Mbit/s upload" width="320"> |
 
-All: OpenSpeedTest from a 2x2 160 MHz MacBook to a wired PC. In the middle the MacBook goes through an AmneziaWG tunnel to a server on the BE5000 itself, on the right through Xray (VLESS + Reality + xhttp) to a server on the BE5000.
+All: OpenSpeedTest from a 2x2 160 MHz MacBook to a wired PC. On the right the MacBook goes through an AmneziaWG tunnel to a server on the BE5000 itself. The VPN numbers in the table are measured the same way, Xray through VLESS + Reality + xhttp to a server on the BE5000.
 
-- **When to turn the NPU off:** when Wi-Fi clients reach the internet through a VPN on this router. If the router only forwards traffic, keep it on.
-- **Why the NPU is slow here:** frames addressed to the router itself are copied by the NPU into Linux memory through uncached memory, about 48 thousand cycles per frame. That caps them at ~150 Mbit/s. Without the NPU the plain mt76 driver receives them.
+- **When to turn the NPU off:** only for the most VPN speed on the router itself: AmneziaWG gets 251/236 Mbit/s without it against 212/178 with it, Xray 137/117 against 121/119, while Wi-Fi ↔ wired drops from ~1.9 to ~1.1 Gbit/s. Otherwise keep it on.
+- **Traffic of the router itself with the NPU:** frames addressed to the router are copied by the NPU into Linux memory, reading them through the cached memory alias. That gives ~450 Mbit/s, so a VPN on the router is limited by the CPU, not by the NPU.
 - **The limit without the NPU** is the CPU: two Cortex-A53 cores in AArch32 mode without NEON, so encryption runs as scalar code only. AmneziaWG keeps the CPU fully busy.
 - **Xray is slower than AmneziaWG:** it encrypts in user space with Go code, AmneziaWG does it in the kernel. The CPU has no AES instructions, and AES-GCM in Go would give about 35–45 Mbit/s. So the Xray in the image offers ChaCha20-Poly1305 first on CPUs without AES instructions, as Chrome does on such CPUs. It works the same way when the BE5000 is the client of a remote Reality server: ~125–135 Mbit/s download.
 
