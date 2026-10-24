@@ -52,6 +52,8 @@ Every release has two images. Both install the same way, and `sysupgrade` moves 
 | `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` | plain: Wi-Fi, NPU offload, LuCI |
 | `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` | VPN: the same plus AmneziaWG 3.1, Xray from the Amnezia fork with luci-app-xray, zapret, https-dns-proxy (DNS over HTTPS) and pbr (policy routing), all with LuCI |
 
+<img src="images/luci-services-menu.png" alt="LuCI Services menu of the VPN image: AmneziaWG, Zapret, HTTPS DNS Proxy, Policy Routing, Xray" width="640">
+
 - **Everything is off in the VPN image.** The packages are installed, but no service runs until it is set up and enabled in LuCI. DNS over HTTPS is off too, because once enabled it takes over the DNS of the whole network.
 - **Xray in LuCI:** **Services → Xray** ([luci-app-xray](https://github.com/yichya/luci-app-xray), English only). For a server with xhttp choose the transport **SplitHTTP (XHTTP)**. Once enabled it proxies the LAN transparently; DNS and the routing rules are on its own tabs.
 - **On the plain image** the same packages install with `apk add` from [this build's feed](https://pabragin.github.io/xiaomi-be5000-openwrt/).
@@ -121,11 +123,9 @@ The switch is in LuCI: **Network → NPU acceleration**. The NPU is on by defaul
 | AmneziaWG on the router | 212 / 178 Mbit/s | 251 / 236 Mbit/s |
 | Xray on the router (VLESS + Reality + xhttp) | 121 / 119 Mbit/s | 137 / 117 Mbit/s |
 
-| NPU on: Wi-Fi ↔ wired | NPU off: through AmneziaWG on the router |
-|---|---|
-| <img src="images/openspeedtest-be5000-npu-on.png" alt="OpenSpeedTest through the BE5000 with the NPU: 1897 Mbit/s download, 1778 Mbit/s upload" width="320"> | <img src="images/openspeedtest-be5000-amneziawg.png" alt="OpenSpeedTest through AmneziaWG on the BE5000 without the NPU: 251 Mbit/s download, 236 Mbit/s upload" width="320"> |
+<img src="images/openspeedtest-be5000-npu-on.png" alt="OpenSpeedTest through the BE5000 with the NPU: 1897 Mbit/s download, 1778 Mbit/s upload" width="320">
 
-All: OpenSpeedTest from a 2x2 160 MHz MacBook to a wired PC. On the right the MacBook goes through an AmneziaWG tunnel to a server on the BE5000 itself. The VPN numbers in the table are measured the same way, Xray through VLESS + Reality + xhttp to a server on the BE5000.
+OpenSpeedTest from a 2x2 160 MHz MacBook through the BE5000 with the NPU to a wired PC. The VPN numbers in the table are measured the same way through a tunnel to a server on the BE5000 itself: AmneziaWG, and Xray with VLESS + Reality + xhttp.
 
 - **When to turn the NPU off:** only for the most VPN speed on the router itself: AmneziaWG gets 251/236 Mbit/s without it against 212/178 with it, Xray 137/117 against 121/119, while Wi-Fi ↔ wired drops from ~1.9 to ~1.1 Gbit/s. Otherwise keep it on.
 - **Traffic of the router itself with the NPU:** frames addressed to the router are copied by the NPU into Linux memory, reading them through the cached memory alias. That gives ~450 Mbit/s, so a VPN on the router is limited by the CPU, not by the NPU.
