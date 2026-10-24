@@ -26,7 +26,7 @@ Everything below is tested on a BE5000 running this firmware.
 
 | What | How it works |
 |---|---|
-| **System** | OpenWrt SNAPSHOT `r36539+1067`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
+| **System** | OpenWrt SNAPSHOT `r36539+1073`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
 | **5 GHz Wi-Fi** | 3x3, 160 MHz, Wi-Fi 6/7. A 2x2 MacBook (2 streams, 2402 Mbit/s link): **1897 Mbit/s** download, **1778 Mbit/s** upload ([test](docs/en/technical.md#speed)) |
 | **Wi-Fi 7** | WPA3 with GCMP-256 and MLO (2.4 + 5 GHz) also go through the NPU: a Wi-Fi 7 client on WPA3 uploads 1560–1760 Mbit/s |
 | **2.4 GHz Wi-Fi** | 2x2, works, 20/40 MHz |
@@ -59,10 +59,10 @@ Every release has two images. Both install the same way, and `sysupgrade` moves 
 
 ### Example: AmneziaWG client
 
-Sends the traffic of the whole network through your AmneziaWG server (Amnezia self-hosted, a VPS and so on). AmneziaWG has no menu of its own in LuCI: it is an interface protocol, like WireGuard.
+Sends the traffic of the whole network through your AmneziaWG server (Amnezia self-hosted, a VPS and so on). AmneziaWG is an interface protocol, like WireGuard: its settings are in **Network → Interfaces**. **Services → AmneziaWG** lists the AmneziaWG interfaces and creates a new one.
 
 1. **Get the client config.** In the AmneziaVPN app: share the server connection in the **AmneziaWG native format** and save the `.conf` file. A `.conf` from your own server works the same way.
-2. **Create the interface.** **Network → Interfaces → Add new interface…**: name `awg0`, protocol **AmneziaWG VPN**, **Create interface**.
+2. **Create the interface.** **Services → AmneziaWG → Create interface awg0**, or **Network → Interfaces → Add new interface…**: name `awg0`, protocol **AmneziaWG VPN**, **Create interface**.
 3. **Import the config.** On the **General Settings** tab click **Load configuration…**, then select, drag or paste the `.conf` and click **Import settings**. The private key, the address, the obfuscation parameters (Jc, Jmin, Jmax, S1–S4, H1–H4, I1–I5) and the peer with its endpoint and keys are filled in.
 4. **Route the traffic.** On the **Peers** tab open the peer (**Edit**) and turn on **Route Allowed IPs**. With `AllowedIPs = 0.0.0.0/0` everything goes into the tunnel; set **Persistent Keep Alive** to `25`.
 5. **Firewall.** On the **Firewall Settings** tab put the interface into the `wan` zone: masquerading and LAN → WAN forwarding are already there.
