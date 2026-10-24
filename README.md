@@ -286,7 +286,6 @@ The `art` partition (`0x80000`, 256 KiB) is two 128 KiB blocks: the Wi-Fi calibr
 
 - **The first block is the stock Xiaomi environment:** on stock this address was the `u-boot-env` partition, with the factory MAC addresses (`ethaddr`, `ethaddr_wan`), the serial number, `uart_en`, `telnet_en` and so on. The installer does not erase it. OpenWrt never writes it and reads only the MAC addresses for LAN and WAN at the first boot.
 - **Where it comes from:** the `art` layout is taken from the first OpenWrt builds for the BE5000 (xinyooo and iscle), where the partition is also `0x80000`, 256 KiB, with the calibration at `0xA0000`.
-- **Why it is not removed:** users moving from xinyooo or iscle with `sysupgrade -n` already have the calibration at `0xA0000` and the firmware from `0xC0000`. Moving the layout would need the calibration moved and a new bootloader, for 128 KiB.
 </details>
 
 <details>
