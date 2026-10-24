@@ -4,7 +4,7 @@
   "packages": {
     "amnezia-xray-core": "26.7.28-r4",
     "amneziawg-tools": "3.1.20260812-r1",
-    "an7552-npu-firmware": "1-r3",
+    "an7552-npu-firmware": "1-r4",
     "base-files": "1718~98bc30d154",
     "byedpi": "0.17.3-r1",
     "dropbear": "2026.94-r3",
