@@ -56,6 +56,59 @@ Every release has two images. Both install the same way, and `sysupgrade` moves 
 - **On the plain image** the same packages install with `apk add` from [this build's feed](https://pabragin.github.io/xiaomi-be5000-openwrt/).
 - **Also in the feed, with `apk add` only:** `luci-app-podkop` (with `luci-i18n-podkop-ru`; pulls in sing-box), `luci-app-nikki` (mihomo), `youtubeUnblock` + `luci-app-youtubeUnblock`, `byedpi`. They are not in the images: sing-box and mihomo take 10–19 MB each. They install into `/overlay` (~79 MB). As anywhere on OpenWrt, `sysupgrade` keeps the settings but not added packages: install them again after an upgrade and they pick up their settings. The VPN image has them built in.
 
+### Example: AmneziaWG client
+
+Sends the traffic of the whole network through your AmneziaWG server (Amnezia self-hosted, a VPS and so on). AmneziaWG has no menu of its own in LuCI: it is an interface protocol, like WireGuard.
+
+1. **Get the client config.** In the AmneziaVPN app: share the server connection in the **AmneziaWG native format** and save the `.conf` file. A `.conf` from your own server works the same way.
+2. **Create the interface.** **Network → Interfaces → Add new interface…**: name `awg0`, protocol **AmneziaWG VPN**, **Create interface**.
+3. **Import the config.** On the **General Settings** tab click **Load configuration…**, then select, drag or paste the `.conf` and click **Import settings**. The private key, the address, the obfuscation parameters (Jc, Jmin, Jmax, S1–S4, H1–H4, I1–I5) and the peer with its endpoint and keys are filled in.
+4. **Route the traffic.** On the **Peers** tab open the peer (**Edit**) and turn on **Route Allowed IPs**. With `AllowedIPs = 0.0.0.0/0` everything goes into the tunnel; set **Persistent Keep Alive** to `25`.
+5. **Firewall.** On the **Firewall Settings** tab put the interface into the `wan` zone: masquerading and LAN → WAN forwarding are already there.
+6. **Save & Apply.** **Status → AmneziaWG** shows the latest handshake and the traffic.
+
+<details>
+<summary>The same in <code>/etc/config/network</code></summary>
+
+```
+config interface 'awg0'
+	option proto 'amneziawg'
+	option private_key '<PrivateKey from [Interface]>'
+	list addresses '10.8.1.2/32'
+	option awg_jc '4'
+	option awg_jmin '40'
+	option awg_jmax '70'
+	option awg_s1 '15'
+	option awg_s2 '18'
+	option awg_h1 '1253678341'
+	option awg_h2 '2041357922'
+	option awg_h3 '893412557'
+	option awg_h4 '1705948110'
+	# AmneziaWG 2.0/3.x servers add some of these:
+	option awg_s3 '17'
+	option awg_s4 '14'
+	option awg_header_protection_key '<HeaderProtectionKey>'
+	option awg_rekey_after_time '100-120'
+	option awg_random_trailers '1'
+	option awg_disable_cookies '1'
+
+config amneziawg_awg0
+	option description 'my-server'
+	option public_key '<PublicKey from [Peer]>'
+	option preshared_key '<PresharedKey from [Peer], if any>'
+	option endpoint_host 'vpn.example.com'
+	option endpoint_port '51820'
+	list allowed_ips '0.0.0.0/0'
+	option route_allowed_ips '1'
+	option persistent_keepalive '25'
+```
+
+Copy every obfuscation line of your `.conf` (Jc…H4, and S3, S4, I1–I5, HeaderProtectionKey, RekeyAfterTime and the others when present): they must match the server exactly. A key in the `.conf` maps to `awg_` plus the key in lowercase with underscores, `on` becomes `1`. Then `uci add_list firewall.@zone[1].network='awg0'; uci commit; service network restart; service firewall restart`.
+</details>
+
+- **Only some sites through the VPN:** leave **Route Allowed IPs** off and send the chosen sites into `awg0` with pbr (in the VPN image) or podkop (from the feed).
+- **Speed:** the tunnel runs on the router CPU, see [NPU offload and VPN](#npu-offload-and-vpn).
+
 ### NPU offload and VPN
 
 The switch is in LuCI: **Network → NPU acceleration**. The NPU is on by default. A change restarts Wi-Fi for a few seconds.

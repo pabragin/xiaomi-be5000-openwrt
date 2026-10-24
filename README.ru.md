@@ -56,6 +56,61 @@
 - **В обычный образ** те же пакеты ставятся через `apk add` из [источника этой сборки](https://pabragin.github.io/xiaomi-be5000-openwrt/).
 - **Там же, только через `apk add`:** `luci-app-podkop` (с `luci-i18n-podkop-ru`; подтянет sing-box), `luci-app-nikki` (mihomo), `youtubeUnblock` + `luci-app-youtubeUnblock`, `byedpi`. В образы они не входят: sing-box и mihomo занимают по 10–19 МБ. Ставятся в `/overlay` (~79 МБ). Как и везде в OpenWrt, `sysupgrade` переносит настройки, но не доставленные пакеты: после обновления их ставят заново, настройки подхватятся. В образе с VPN пакеты уже внутри.
 
+### Пример: клиент AmneziaWG
+
+Весь трафик сети идёт через ваш сервер AmneziaWG (Amnezia на своём сервере, VPS и т. п.). Отдельного меню у AmneziaWG в LuCI нет: это протокол интерфейса, как WireGuard.
+
+1. **Конфиг клиента.** В приложении AmneziaVPN поделитесь подключением к серверу в формате **AmneziaWG native format** и сохраните файл `.conf`. Так же подойдёт `.conf` с вашего сервера.
+2. **Интерфейс.** **Сеть → Интерфейсы → Добавить новый интерфейс…**: имя `awg0`, протокол **AmneziaWG VPN**, **Создать интерфейс**.
+3. **Импорт конфига.** На вкладке **Основные настройки** нажмите **Load configuration…**, выберите, перетащите или вставьте `.conf` и нажмите **Import settings**. Приватный ключ, адрес, параметры обфускации (Jc, Jmin, Jmax, S1–S4, H1–H4, I1–I5) и пир с адресом сервера и ключами заполнятся сами.
+4. **Маршрут.** На вкладке **Peers** откройте пир (**Изменить**) и включите **Route Allowed IPs**. С `AllowedIPs = 0.0.0.0/0` в туннель идёт всё; **Persistent Keep Alive** поставьте `25`.
+5. **Межсетевой экран.** На вкладке **Настройки межсетевого экрана** назначьте интерфейсу зону `wan`: маскарадинг и пересылка LAN → WAN в ней уже есть.
+6. **Сохранить и применить.** В **Статус → AmneziaWG** видно последнее рукопожатие и трафик.
+
+Кнопки импорта и вкладка пиров не переведены и в русском интерфейсе остаются на английском.
+
+<details>
+<summary>То же в <code>/etc/config/network</code></summary>
+
+```
+config interface 'awg0'
+	option proto 'amneziawg'
+	option private_key '<PrivateKey из [Interface]>'
+	list addresses '10.8.1.2/32'
+	option awg_jc '4'
+	option awg_jmin '40'
+	option awg_jmax '70'
+	option awg_s1 '15'
+	option awg_s2 '18'
+	option awg_h1 '1253678341'
+	option awg_h2 '2041357922'
+	option awg_h3 '893412557'
+	option awg_h4 '1705948110'
+	# AmneziaWG 2.0/3.x servers add some of these:
+	option awg_s3 '17'
+	option awg_s4 '14'
+	option awg_header_protection_key '<HeaderProtectionKey>'
+	option awg_rekey_after_time '100-120'
+	option awg_random_trailers '1'
+	option awg_disable_cookies '1'
+
+config amneziawg_awg0
+	option description 'my-server'
+	option public_key '<PublicKey из [Peer]>'
+	option preshared_key '<PresharedKey из [Peer], если есть>'
+	option endpoint_host 'vpn.example.com'
+	option endpoint_port '51820'
+	list allowed_ips '0.0.0.0/0'
+	option route_allowed_ips '1'
+	option persistent_keepalive '25'
+```
+
+Все строки обфускации из своего `.conf` (Jc…H4, а также S3, S4, I1–I5, HeaderProtectionKey, RekeyAfterTime и остальные, если они есть) перенесите до одной: они должны точно совпадать с сервером. Ключ из `.conf` превращается в `awg_` плюс ключ строчными буквами через подчёркивания, `on` — в `1`. Затем `uci add_list firewall.@zone[1].network='awg0'; uci commit; service network restart; service firewall restart`.
+</details>
+
+- **Только некоторые сайты через VPN:** оставьте **Route Allowed IPs** выключенным и направьте нужные сайты в `awg0` через pbr (есть в образе с VPN) или podkop (из фида).
+- **Скорость:** туннель работает на процессоре роутера, см. [Ускорение NPU и VPN](#ускорение-npu-и-vpn).
+
 ### Ускорение NPU и VPN
 
 Переключатель в LuCI: **Сеть → Ускорение NPU**. По умолчанию NPU включён. Изменение перезапускает Wi-Fi на несколько секунд.
