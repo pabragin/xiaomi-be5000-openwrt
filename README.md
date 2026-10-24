@@ -31,7 +31,7 @@ Everything below is tested on a BE5000 running this firmware.
 | **Wi-Fi 7** | WPA3 with GCMP-256 and MLO (2.4 + 5 GHz) also go through the NPU: a Wi-Fi 7 client on WPA3 uploads 1560–1760 Mbit/s |
 | **2.4 GHz Wi-Fi** | 2x2, works, 20/40 MHz |
 | **Hardware offload** | Wi-Fi ↔ wired traffic goes through the PPE and the NPU; the CPU is ~10% busy at full speed. The NPU can be turned off in LuCI when a fast VPN matters more ([details](#npu-offload-and-vpn)) |
-| **VPN** (VPN image) | AmneziaWG 3.1, Xray from the Amnezia fork (VLESS, Reality, xhttp), zapret, https-dns-proxy, pbr; all with LuCI ([details](#two-images)) |
+| **VPN** (VPN image) | AmneziaWG 3.1, Xray from the Amnezia fork (VLESS, Reality, xhttp) with luci-app-xray, zapret, https-dns-proxy, pbr; all with LuCI ([details](#two-images)) |
 | **Roaming** | 802.11r: phones and laptops move seamlessly between the BE5000 and another OpenWrt AP with the same network |
 | **Ports** | 2.5 Gbit/s WAN (DHCP client) and three 1 Gbit/s LAN ports |
 | **Settings** | survive reboots and power cuts, and are kept across firmware upgrades; about 79 MiB free in `/overlay` for settings and packages |
@@ -50,9 +50,10 @@ Every release has two images. Both install the same way, and `sysupgrade` moves 
 | Release file | What is inside |
 |---|---|
 | `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` | plain: Wi-Fi, NPU offload, LuCI |
-| `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` | VPN: the same plus AmneziaWG 3.1, Xray from the Amnezia fork, zapret, https-dns-proxy (DNS over HTTPS) and pbr (policy routing), all with LuCI |
+| `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` | VPN: the same plus AmneziaWG 3.1, Xray from the Amnezia fork with luci-app-xray, zapret, https-dns-proxy (DNS over HTTPS) and pbr (policy routing), all with LuCI |
 
 - **Everything is off in the VPN image.** The packages are installed, but no service runs until it is set up and enabled in LuCI. DNS over HTTPS is off too, because once enabled it takes over the DNS of the whole network.
+- **Xray in LuCI:** **Services → Xray** ([luci-app-xray](https://github.com/yichya/luci-app-xray), English only). For a server with xhttp choose the transport **SplitHTTP (XHTTP)**. Once enabled it proxies the LAN transparently; DNS and the routing rules are on its own tabs.
 - **On the plain image** the same packages install with `apk add` from [this build's feed](https://pabragin.github.io/xiaomi-be5000-openwrt/).
 - **Also in the feed, with `apk add` only:** `luci-app-podkop` (with `luci-i18n-podkop-ru`; pulls in sing-box), `luci-app-nikki` (mihomo), `youtubeUnblock` + `luci-app-youtubeUnblock`, `byedpi`. They are not in the images: sing-box and mihomo take 10–19 MB each. They install into `/overlay` (~79 MB). As anywhere on OpenWrt, `sysupgrade` keeps the settings but not added packages: install them again after an upgrade and they pick up their settings. The VPN image has them built in.
 

@@ -31,7 +31,7 @@
 | **Wi-Fi 7** | WPA3 с GCMP-256 и MLO (2,4 + 5 ГГц) тоже идут через NPU: клиент Wi-Fi 7 на WPA3 отдаёт 1560–1760 Мбит/с |
 | **Wi-Fi 2,4 ГГц** | 2x2, работает, 20/40 МГц |
 | **Аппаратное ускорение** | трафик Wi-Fi ↔ провод идёт через PPE и NPU, процессор на полной скорости загружен на ~10%. NPU выключается в LuCI, если нужен быстрый VPN ([подробнее](#ускорение-npu-и-vpn)) |
-| **VPN** (образ с VPN) | AmneziaWG 3.1, Xray из форка Amnezia (VLESS, Reality, xhttp), zapret, https-dns-proxy, pbr; всё с LuCI и русским переводом ([подробнее](#два-образа)) |
+| **VPN** (образ с VPN) | AmneziaWG 3.1, Xray из форка Amnezia (VLESS, Reality, xhttp) с luci-app-xray, zapret, https-dns-proxy, pbr; всё с LuCI, кроме Xray — с русским переводом ([подробнее](#два-образа)) |
 | **Роуминг** | 802.11r: телефоны и ноутбуки бесшовно переходят между BE5000 и другой точкой OpenWrt с той же сетью |
 | **Порты** | WAN 2,5 Гбит/с (DHCP-клиент) и три LAN по 1 Гбит/с |
 | **Настройки** | сохраняются после перезагрузок и отключения питания, переносятся при обновлении прошивки; в `/overlay` около 79 МБ свободно под настройки и пакеты |
@@ -50,9 +50,10 @@
 | Файл в релизе | Что внутри |
 |---|---|
 | `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` | обычный: Wi-Fi, ускорение NPU, LuCI |
-| `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` | с VPN: то же плюс AmneziaWG 3.1, Xray из форка Amnezia, zapret, https-dns-proxy (DNS по HTTPS) и pbr (маршрутизация по правилам), все с LuCI |
+| `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` | с VPN: то же плюс AmneziaWG 3.1, Xray из форка Amnezia с luci-app-xray, zapret, https-dns-proxy (DNS по HTTPS) и pbr (маршрутизация по правилам), все с LuCI |
 
 - **В образе с VPN всё выключено.** Пакеты стоят, но службы не запущены: их включают и настраивают в LuCI. DNS по HTTPS тоже выключен, потому что после включения он забирает себе DNS всей сети.
+- **Xray в LuCI:** **Службы → Xray** ([luci-app-xray](https://github.com/yichya/luci-app-xray), только по-английски). Для сервера с xhttp выберите транспорт **SplitHTTP (XHTTP)**. После включения он прозрачно проксирует LAN; DNS и правила маршрутизации — на его собственных вкладках.
 - **В обычный образ** те же пакеты ставятся через `apk add` из [источника этой сборки](https://pabragin.github.io/xiaomi-be5000-openwrt/).
 - **Там же, только через `apk add`:** `luci-app-podkop` (с `luci-i18n-podkop-ru`; подтянет sing-box), `luci-app-nikki` (mihomo), `youtubeUnblock` + `luci-app-youtubeUnblock`, `byedpi`. В образы они не входят: sing-box и mihomo занимают по 10–19 МБ. Ставятся в `/overlay` (~79 МБ). Как и везде в OpenWrt, `sysupgrade` переносит настройки, но не доставленные пакеты: после обновления их ставят заново, настройки подхватятся. В образе с VPN пакеты уже внутри.
 

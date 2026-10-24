@@ -5,7 +5,7 @@ The images are not in git: download them from the [latest release](https://githu
 | Release file | Use |
 |---|---|
 | `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` | Install: upload in the U-Boot web failsafe (`http://192.168.1.1`) or `sysupgrade` from OpenWrt. Raw image of the `firmware` partition: FIT kernel + squashfs |
-| `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` | The same with AmneziaWG 3.1, Xray from the Amnezia fork, zapret, https-dns-proxy and pbr, all with LuCI and off until configured ([two images](../../README.md#two-images)) |
+| `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` | The same with AmneziaWG 3.1, Xray from the Amnezia fork with luci-app-xray, zapret, https-dns-proxy and pbr, all with LuCI and off until configured ([two images](../../README.md#two-images)) |
 | `openwrt-airoha-an7563-xiaomi_be5000-initramfs-kernel.bin` | RAM-only system for recovery and tests: `tftpboot 0x84000000 …; bootm 0x84000000` in U-Boot. Does not touch flash |
 | `SHA256SUMS` | checksums of the release files |
 | `be5000-openwrt-source-patches.tar.gz`, `diffconfig` | the patch series and the build config of this build |
