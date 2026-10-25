@@ -130,7 +130,7 @@ cat /sys/class/mtd/mtd0/writesize                  # page size
 sh scripts/pc/be5000-backup.sh $R
 ```
 
-The script downloads each `/dev/mtdN` to the PC and checks SHA-256 against the router. The `be5000-backup-<date>/` folder will contain `mtdN-<name>.bin`, `proc_mtd.txt`, `sysfs_mtd.txt`, `dmesg.txt` and `SHA256SUMS`.
+The script downloads each `/dev/mtdN` to the PC and checks SHA-256 against the router. A block the router cannot read (a bad block) does not stop it: that partition is read again block by block, the bad block is saved as 0xFF and listed in `bad-blocks.txt`. The `be5000-backup-<date>/` folder will contain `mtdN-<name>.bin`, `proc_mtd.txt`, `sysfs_mtd.txt`, `dmesg.txt` and `SHA256SUMS`.
 
 > [!WARNING]
 > The backup contains your calibration, MAC addresses and serial number. Do not publish it. Without it you cannot return to the Xiaomi firmware.

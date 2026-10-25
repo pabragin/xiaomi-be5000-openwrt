@@ -24,7 +24,9 @@ TAG=be5000-install-$$
 # The password is asked once. macOS/Linux/WSL: all commands share one SSH connection.
 # Windows (Git Bash, MSYS, Cygwin) cannot pass descriptors to a shared connection
 # ("mux_client_request_session: send fds failed"): a one-time key is put on the router
-# after the password and removed at the end.
+# after the password and removed at the end. It goes to ~/.ssh/authorized_keys (the
+# only file the dropbear that XMiR-Patcher puts on stock reads) and to
+# /etc/dropbear/authorized_keys (OpenWrt).
 # BE5000_SSH_KEY=1 uses the one-time key on any system.
 case $(uname -s)${BE5000_SSH_KEY:+key} in
 	*_NT*|MINGW*|MSYS*|CYGWIN*|*key)   # MINGW64_NT-…, UCRT64_NT-…, CLANG64_NT-…
@@ -44,7 +46,7 @@ upload() { $SSH "$R" "cat > /tmp/$(basename "$1")" < "$1"; }   # no scp: works w
 sha256() { if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$1"; else sha256sum "$1"; fi | cut -d' ' -f1; }
 drop_key() {   # the one-time key off the router and the PC
 	[ -n "$KEY" ] || return 0
-	[ -f "$KEY" ] && $SSH "$R" "sed -i '/$TAG/d' /etc/dropbear/authorized_keys /root/.ssh/authorized_keys 2>/dev/null; true" 2>/dev/null
+	[ -f "$KEY" ] && $SSH "$R" "sed -i '/$TAG/d' /etc/dropbear/authorized_keys ~/.ssh/authorized_keys 2>/dev/null; true" 2>/dev/null
 	rm -f "$KEY" "$KEY.pub"
 }
 trap 'drop_key; [ -n "$KEY" ] || ssh $SSH_OPTS -O exit "$R" 2>/dev/null || true' EXIT
@@ -119,7 +121,7 @@ use_key() {   # one-time key: password once, then key auth for every command
 	KEY=${TMPDIR:-/tmp}/$TAG
 	rm -f "$KEY" "$KEY.pub"
 	ssh-keygen -q -t ed25519 -N "" -C "$TAG" -f "$KEY" || fail "could not create a one-time SSH key"
-	ssh $SSH_BASE "$R" 'mkdir -p /etc/dropbear && k=$(cat) && for f in /etc/dropbear/authorized_keys /root/.ssh/authorized_keys; do [ -d ${f%/*} ] || continue; echo "$k" >> $f; chmod 600 $f; done' < "$KEY.pub" || fail "$SSH_FAIL"
+	ssh $SSH_BASE "$R" 'mkdir -p /etc/dropbear ~/.ssh && chmod 700 ~/.ssh && k=$(cat) && for f in /etc/dropbear/authorized_keys ~/.ssh/authorized_keys; do echo "$k" >> $f && chmod 600 $f; done' < "$KEY.pub" || fail "$SSH_FAIL"
 	export SSH_OPTS="$SSH_BASE -i $KEY -o IdentitiesOnly=yes"; SSH="ssh $SSH_OPTS"
 	if ! $SSH -o BatchMode=yes "$R" true 2>/dev/null; then
 		echo "the router did not accept the one-time key: it will ask for the password at every step"
@@ -170,7 +172,16 @@ if grep -q 'calibration block.*has data' "$C"; then
 fi
 
 step "4/6 Backing up the whole flash to $OUT (a few minutes)"
-sh scripts/pc/be5000-backup.sh "$R" "$OUT" || fail "backup failed. If the output above shows an I/O error on a partition, the flash has a bad block there: open an issue with the output; otherwise run again"
+sh scripts/pc/be5000-backup.sh "$R" "$OUT" || fail "backup failed, see the output above: the SSH connection was lost or a checksum did not match. Run again; if it stops the same way every time, open an issue with the output"
+# A bad block is saved as 0xFF and listed; the install goes on unless it lies where
+# the script writes: the bootloader (0x0-0x80000) or the calibration block (0xA0000).
+if [ -s "$OUT/bad-blocks.txt" ]; then
+	while read -r l; do
+		case $l in *" in the flash") f=${l##* 0x}; f=${f%% *}
+			[ $((0x$f)) -lt $((0xC0000)) ] && fail "bad block at flash offset 0x$f, inside the bootloader or calibration area: the installer cannot write around it. Open an issue with $OUT/bad-blocks.txt and $OUT/dmesg.txt" ;;
+		esac
+	done < "$OUT/bad-blocks.txt"
+fi
 
 echo
 echo "Next step writes to flash. Backup: $HERE/$OUT - keep it somewhere safe."
@@ -186,7 +197,7 @@ $SSH "$R" "BE5000_NAND_OK=${BE5000_NAND_OK:-} sh /tmp/be5000-install.sh bootload
 	|| fail "bootloader step failed. If the output above contains 'writing bootloader', do NOT reboot or power off the router: run sh install.sh again right away, it writes the bootloader again; if that fails too, open an issue with the output. Otherwise nothing was written"
 $SSH "$R" 'cat /tmp/be5000-mtd*-old-bootloader.bin' > "$OUT/old-bootloader.bin" 2>/dev/null || true
 if [ -n "$KEY" ]; then
-	$SSH "$R" "sed -i '/$TAG/d' /etc/dropbear/authorized_keys /root/.ssh/authorized_keys 2>/dev/null; reboot" || true
+	$SSH "$R" "sed -i '/$TAG/d' /etc/dropbear/authorized_keys ~/.ssh/authorized_keys 2>/dev/null; reboot" || true
 	rm -f "$KEY" "$KEY.pub"
 else
 	$SSH "$R" reboot || true
