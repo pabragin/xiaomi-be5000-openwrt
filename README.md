@@ -26,7 +26,7 @@ Everything below is tested on a BE5000 running this firmware.
 
 | What | How it works |
 |---|---|
-| **System** | OpenWrt SNAPSHOT `r36539+1073`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
+| **System** | OpenWrt SNAPSHOT `r36539+1227`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
 | **5 GHz Wi-Fi** | 3x3, 160 MHz, Wi-Fi 6/7. A 2x2 MacBook (2 streams, 2402 Mbit/s link): **1897 Mbit/s** download, **1778 Mbit/s** upload ([test](docs/en/technical.md#speed)) |
 | **Wi-Fi 7** | WPA3 with GCMP-256 and MLO (2.4 + 5 GHz) also go through the NPU: a Wi-Fi 7 client on WPA3 uploads 1560–1760 Mbit/s |
 | **2.4 GHz Wi-Fi** | 2x2, works, 20/40 MHz |
@@ -174,7 +174,7 @@ Then it asks for the router password once and:
 2. Open `http://192.168.1.1` in a current browser (Internet Explorer and old Chromium versions do not show the upload and do not open LuCI), choose one of the images from step 1, plain or `full` (the installer prints their paths at the end), click **Upload**, then **Proceed**.
 3. Wait 5 minutes and do not cut the power. The router reboots into OpenWrt by itself.
 
-**Step 3. Setup.** Switch the computer back to an automatic address (DHCP), open `http://192.168.1.1` and set a password. Then in **Network → Wireless** set the country, the network name and password and click **Enable** on both radios (Wi-Fi is off by default). The 2.5G port is WAN and gets its address from the provider by DHCP; the three 1G ports are LAN. To use the router as an access point behind another router, delete the `wan` and `wan6` interfaces in **Network → Interfaces**, then add `eth1` to **Devices → br-lan → Bridge ports**: never keep `eth1` in the bridge and in `wan` at the same time, or the LAN merges with the upstream network and `192.168.1.1` becomes unreachable. WAN and LAN use the factory MAC addresses from the stock U-Boot environment, which stays in the first block of `art`.
+**Step 3. Setup.** Switch the computer back to an automatic address (DHCP), open `http://192.168.1.1` and set a password. Then in **Network → Wireless** set the country, the network name and password and click **Enable** on both radios (Wi-Fi is off by default). The 2.5G port is WAN and gets its address from the provider by DHCP; the three 1G ports are LAN. To use the router as an access point behind another router, delete the `wan` and `wan6` interfaces in **Network → Interfaces**, then add `eth1` to **Devices → br-lan → Bridge ports**: never keep `eth1` in the bridge and in `wan` at the same time, or the LAN merges with the upstream network and `192.168.1.1` becomes unreachable. Every Ethernet port has its factory MAC address from the stock U-Boot environment, which stays in the first block of `art`: the 1G ports and the bridge use the LAN one, the 2.5G port the WAN one printed on the label.
 
 > [!CAUTION]
 > If the power is lost while the bootloader is being written, or the router does not show up on the network after step 1, only UART can bring it back (section 4).
@@ -286,9 +286,9 @@ Checksums and origin of the binaries: [firmware/bootloader/README.md](firmware/b
 <details>
 <summary>What the first block of <code>art</code> is for</summary>
 
-The `art` partition (`0x80000`, 256 KiB) is two 128 KiB blocks: the Wi-Fi calibration is in the second one, at `0xA0000` (offset `0x20000` inside the partition).
+The `art` partition (`0x80000`, 256 KiB) is two 128 KiB blocks: the Wi-Fi calibration is in the second one, at `0xA0000` (offset `0x20000` inside the partition); the first one is also visible as the read-only `stock-env` partition.
 
-- **The first block is the stock Xiaomi environment:** on stock this address was the `u-boot-env` partition, with the factory MAC addresses (`ethaddr`, `ethaddr_wan`), the serial number, `uart_en`, `telnet_en` and so on. The installer does not erase it. OpenWrt never writes it and reads only the MAC addresses for LAN and WAN at the first boot.
+- **The first block is the stock Xiaomi environment:** on stock this address was the `u-boot-env` partition, with the factory MAC addresses (`ethaddr`, `ethaddr_wan`), the serial number, `uart_en`, `telnet_en` and so on. The installer does not erase it, and OpenWrt maps it read-only as `stock-env`. The kernel parses the environment at every boot and gives the Ethernet ports their factory MAC addresses from it; the first boot also copies the two addresses into the network config for the bridge and `wan`.
 - **Where it comes from:** the `art` layout is taken from the first OpenWrt builds for the BE5000 (xinyooo and iscle), where the partition is also `0x80000`, 256 KiB, with the calibration at `0xA0000`.
 </details>
 

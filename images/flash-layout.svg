@@ -32,7 +32,7 @@
     <rect x="730" y="244" width="430" height="66" fill="#e0cffc" stroke="#6f42c1" stroke-width="2"/><text x="945" y="266" font-weight="bold">ubi-data: rootfs_data (UBIFS, settings)</text><text x="945" y="283" fill="#444">0x18C0000</text><text x="945" y="299" fill="#444">93.1 MiB, to the end</text>
   </g>
   <text x="265" y="326" font-size="11" fill="#555" text-anchor="middle">env in the last 16 KiB</text>
-  <text x="330" y="342" font-size="11" fill="#555" text-anchor="middle">blk 1: stock env (MACs, serial)</text>
+  <text x="330" y="342" font-size="11" fill="#555" text-anchor="middle">blk 1 = stock-env (RO): stock env with the MACs, serial</text>
   <text x="395" y="358" font-size="11" fill="#b02a37" text-anchor="middle">blk 2: Wi-Fi calibration</text>
 
   <g font-size="13" fill="#111">

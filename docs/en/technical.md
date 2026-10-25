@@ -38,7 +38,7 @@
 |---|---|---|---|
 | `0x000000` | Bootloader | u-boot (RO) | `0x60000` |
 | `0x060000` | ↑ | u-boot-env: U-Boot environment in the last 16 KiB (`0x7C000`) | `0x20000` |
-| `0x080000` | u-boot-env | art: block 1 | `0x20000` |
+| `0x080000` | u-boot-env | art: block 1, also the read-only **stock-env** partition (stock U-Boot environment with the MAC addresses) | `0x20000` |
 | `0x0A0000` | ↑ (empty) | art: block 2 = **calibration** | `0x20000` |
 | `0x0C0000` | ↑ | firmware: kernel (FIT) | `0x3C0000` |
 | `0x100000` | bdata (`ethaddr=…`) | ↑ | |
@@ -141,6 +141,7 @@ Compared to iscle's builds:
 - **Full wpad:** `wpad-mbedtls` instead of `wpad-basic-mbedtls`.
 - **Sysupgrade:** the Wi-Fi driver is unloaded before the image is written, and the image size is checked against the 24 MiB `firmware` partition. The reboot after a sysupgrade still hangs about 1 in 3 (no LED; a power cycle brings the router back with the image and the settings written). The netconsole log shows the whole upgrade and `reboot -f`; the hang comes after the PSCI system reset, before the watchdog runs. A reset through the watchdog right at the end of stage 2 came back every time (5 of 5), a watchdog restart handler in the kernel did not help.
 - **Writable `art`:** the calibration partition is not marked read-only, so `be5000-install.sh calibration` can write the block from OpenWrt, installed or in RAM. Nothing writes there on its own; the script refuses to erase a block that holds data.
+- **Factory MAC addresses:** the first block of `art` holds the stock U-Boot environment (64 KiB with a CRC) and is also mapped as the read-only `stock-env` partition, listed after the others so that the partition numbers stay (the bootloader passes `root=/dev/mtdblock5`). The kernel parses it with the NVMEM `u-boot,env` layout (`env-size` 64 KiB, as the CRC covers only that much) and gives `eth0` with the three 1G ports `ethaddr` and the 2.5G port `ethaddr_wan`, the address on the label, at every boot, whatever the network config says. The layout converts only `ethaddr` upstream, so a two-line patch runs the generic `mac-base` parser on the other cells. Without the environment the ports get random addresses from the kernel, and `board.d` keeps a random pair in the config for the bridge and `wan`.
 - **Kernel modules:** downloads.openwrt.org has no `airoha/an7563` target, so the build makes every kernel module (`CONFIG_ALL_KMODS`) and publishes them, signed with the build key, on the GitHub Pages of this repository, one directory per kernel version and vermagic hash (`kmods/6.18.55-<hash>/`). The same directory carries the packages of the VPN image that downloads.openwrt.org does not have (AmneziaWG, zapret, the Amnezia Xray, the NPU switch). On first boot the image points the target feed of `/etc/apk/repositories.d/distfeeds.list` at the directory of its own kernel.
 - **Wi-Fi MAC without calibration:** if `art` has no calibration, the driver uses the MediaTek default EEPROM with the same MAC on every unit. On first boot each radio then gets a random `macaddr_base`, kept in `/etc/config/wireless`.
 

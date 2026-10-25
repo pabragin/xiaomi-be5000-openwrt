@@ -57,7 +57,8 @@ mtd_table() {
 		if [ -r /sys/class/mtd/mtd$i/offset ]; then off=$(cat /sys/class/mtd/mtd$i/offset); else off=$acc; fi
 		flags=$(cat /sys/class/mtd/mtd$i/flags 2>/dev/null || echo 0)
 		# Sub-partitions (kernel/rootfs inside "firmware") report offsets relative
-		# to their parent, so they start before the end of what we have seen.
+		# to their parent, and "stock-env" lies inside "art": both start before
+		# the end of what we have seen and are skipped by mtd_covering.
 		if [ "$off" -lt "$maxend" ]; then nested=1; else nested=0; maxend=$((off + sz)); fi
 		echo "$i $name $off $sz $flags $nested"
 		acc=$((off + sz))
@@ -166,7 +167,7 @@ cmd_nand() {
 cmd_check() {
 	info "MTD partitions (index name offset size flags; flag 0x400 = writable)"
 	mtd_table | while read -r i n o s f nested; do
-		printf '  mtd%-2s %-14s off=0x%08x size=0x%08x %s%s\n' "$i" "$n" "$o" "$s" "$(writable "$f" && echo rw || echo RO)" "$([ "$nested" = 1 ] && echo ' (inside firmware)')"
+		printf '  mtd%-2s %-14s off=0x%08x size=0x%08x %s%s\n' "$i" "$n" "$o" "$s" "$(writable "$f" && echo rw || echo RO)" "$([ "$nested" = 1 ] && echo ' (inside an earlier partition)')"
 	done
 	cmd_nand
 
