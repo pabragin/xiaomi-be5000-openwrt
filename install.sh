@@ -26,7 +26,8 @@ TAG=be5000-install-$$
 # ("mux_client_request_session: send fds failed"): a one-time key is put on the router
 # after the password and removed at the end. It goes to ~/.ssh/authorized_keys (the
 # only file the dropbear that XMiR-Patcher puts on stock reads) and to
-# /etc/dropbear/authorized_keys (OpenWrt).
+# /etc/dropbear/authorized_keys (OpenWrt). On stock /root is on the read-only squashfs,
+# so a tmpfs is mounted over it first; it is gone at the reboot that ends the install.
 # BE5000_SSH_KEY=1 uses the one-time key on any system.
 case $(uname -s)${BE5000_SSH_KEY:+key} in
 	*_NT*|MINGW*|MSYS*|CYGWIN*|*key)   # MINGW64_NT-…, UCRT64_NT-…, CLANG64_NT-…
@@ -121,9 +122,10 @@ use_key() {   # one-time key: password once, then key auth for every command
 	KEY=${TMPDIR:-/tmp}/$TAG
 	rm -f "$KEY" "$KEY.pub"
 	ssh-keygen -q -t ed25519 -N "" -C "$TAG" -f "$KEY" || fail "could not create a one-time SSH key"
-	ssh $SSH_BASE "$R" 'mkdir -p /etc/dropbear ~/.ssh && chmod 700 ~/.ssh && k=$(cat) && for f in /etc/dropbear/authorized_keys ~/.ssh/authorized_keys; do echo "$k" >> $f && chmod 600 $f; done' < "$KEY.pub" || fail "$SSH_FAIL"
+	ssh $SSH_BASE "$R" 'mkdir -p /etc/dropbear; { mkdir -p ~/.ssh && : >> ~/.ssh/authorized_keys; } 2>/dev/null || { { mount -t tmpfs -o mode=755 tmpfs ~ || mount -t ramfs -o mode=755 ramfs ~; } && mkdir ~/.ssh; } || exit 1; chmod 700 ~/.ssh; k=$(cat); for f in /etc/dropbear/authorized_keys ~/.ssh/authorized_keys; do echo "$k" >> $f && chmod 600 $f; done' < "$KEY.pub" && rc=0 || rc=$?
+	[ "$rc" = 255 ] && fail "$SSH_FAIL"   # 255: no connection or wrong password; any other error is the router's own, printed above
 	export SSH_OPTS="$SSH_BASE -i $KEY -o IdentitiesOnly=yes"; SSH="ssh $SSH_OPTS"
-	if ! $SSH -o BatchMode=yes "$R" true 2>/dev/null; then
+	if [ "$rc" != 0 ] || ! $SSH -o BatchMode=yes "$R" true 2>/dev/null; then
 		echo "the router did not accept the one-time key: it will ask for the password at every step"
 		rm -f "$KEY" "$KEY.pub"; KEY=
 		export SSH_OPTS="$SSH_BASE"; SSH="ssh $SSH_OPTS"
