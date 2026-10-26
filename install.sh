@@ -50,7 +50,15 @@ drop_key() {   # the one-time key off the router and the PC
 	[ -f "$KEY" ] && $SSH "$R" "sed -i '/$TAG/d' /etc/dropbear/authorized_keys ~/.ssh/authorized_keys 2>/dev/null; true" 2>/dev/null
 	rm -f "$KEY" "$KEY.pub"
 }
-trap 'drop_key; [ -n "$KEY" ] || ssh $SSH_OPTS -O exit "$R" 2>/dev/null || true' EXIT
+# Opened with a double click (Git Bash, "Run in terminal" of a Linux file manager), the
+# window closes at exit and takes the next steps with it: always wait for Enter.
+# install.bat sets BE5000_NO_PAUSE, it has a pause of its own.
+pause_at_exit() {
+	[ -z "${BE5000_NO_PAUSE:-}" ] && [ -t 0 ] || return 0
+	printf '\nPress Enter to close this window. '
+	read -r _ || true
+}
+trap 'drop_key; [ -n "$KEY" ] || ssh $SSH_OPTS -O exit "$R" 2>/dev/null || true; pause_at_exit' EXIT
 
 step "1/6 OpenWrt images for the browser step at the end"
 # install.sh itself writes only the calibration and the bootloader; the OpenWrt image
