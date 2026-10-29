@@ -236,11 +236,11 @@ For the VPN image use the same commands with `openwrt-airoha-an7563-xiaomi_be500
 | Now installed | How to upgrade |
 |---|---|
 | be5000-openwrt-20261018 or newer | straight to the latest release |
-| be5000-openwrt-20261016 or 20261017 | **first** [be5000-openwrt-20261018](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/tag/be5000-openwrt-20261018), **then** the latest release |
+| be5000-openwrt before 2026-10-18 (any version) | **first** [be5000-openwrt-20261018](https://github.com/pabragin/xiaomi-be5000-openwrt/releases/tag/be5000-openwrt-20261018), **then** the latest release |
 | Xiaomi stock, xinyooo, iscle | straight to the latest release: [install](#3-install) or [`sysupgrade -n`](#from-xinyooo-or-iscle-openwrt) |
 
 > [!WARNING]
-> From 20261016 and 20261017 upgrade only through 20261018. Only that release moves the settings from the old 40 MiB partition to the new 93 MiB one. Newer releases do not move the old layout: they format the settings partition and the settings are lost.
+> From any be5000-openwrt version before 2026-10-18 upgrade only through 20261018. Only that release moves the settings from the old 40 MiB partition to the new 93 MiB one. Newer releases do not move the old layout: they format the settings partition and the settings are lost.
 
 ## 4. If the bootloader is broken: UART
 
