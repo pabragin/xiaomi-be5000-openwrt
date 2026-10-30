@@ -1127,7 +1127,7 @@
     "librt": "1.2.6-r5",
     "libxtables": "1.8.10-r3",
     "luci-app-amneziawg-menu": "1-r1",
-    "luci-app-an7552-npu": "1-r5",
+    "luci-app-an7552-npu": "1-r6",
     "luci-app-be5000-temp": "1-r2",
     "luci-app-nikki": "1.26.2-r1",
     "luci-app-podkop": "0.7.24-r1",
