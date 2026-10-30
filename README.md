@@ -26,9 +26,9 @@ Everything below is tested on a BE5000 running this firmware.
 
 | What | How it works |
 |---|---|
-| **System** | OpenWrt SNAPSHOT `r36539+1229`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
+| **System** | OpenWrt SNAPSHOT `r36539+1230`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
 | **5 GHz Wi-Fi** | 3x3, 160 MHz, Wi-Fi 6/7. A 2x2 MacBook (2 streams, 2402 Mbit/s link): **1897 Mbit/s** download, **1778 Mbit/s** upload ([test](docs/en/technical.md#speed)) |
-| **Wi-Fi 7** | WPA3 with GCMP-256 and MLO (2.4 + 5 GHz) also go through the NPU: a Wi-Fi 7 client on WPA3 uploads 1560–1760 Mbit/s |
+| **Wi-Fi 7** | WPA3 with GCMP-256 and MLO (2.4 + 5 GHz) also go through the NPU: a Wi-Fi 7 client on WPA3 uploads 1560–1760 Mbit/s. An MLO network is turned on in LuCI: **Network → Advanced settings** |
 | **2.4 GHz Wi-Fi** | 2x2, works, 20/40 MHz |
 | **Hardware offload** | Wi-Fi ↔ wired traffic goes through the PPE and the NPU; the CPU is ~10% busy at full speed. The NPU can be turned off in LuCI when a fast VPN matters more ([details](#npu-offload-and-vpn)) |
 | **VPN** (VPN image) | AmneziaWG 3.1, Xray from the Amnezia fork (VLESS, Reality, xhttp) with luci-app-xray, zapret, https-dns-proxy, pbr; all with LuCI ([details](#two-images)) |
@@ -116,7 +116,7 @@ Copy every obfuscation line of your `.conf` (Jc…H4, and S3, S4, I1–I5, Heade
 
 ### NPU offload and VPN
 
-The switch is in LuCI: **Network → NPU acceleration**. The NPU is on by default. A change restarts Wi-Fi for a few seconds. The same page sets the TCP MSS for PPPoE (1452 by default): it keeps packets small enough for hardware routing offload through PPPoE.
+The switch is in LuCI: **Network → Advanced settings**. The NPU is on by default. A change restarts Wi-Fi for a few seconds. The same page sets the TCP MSS for PPPoE (1452 by default), which keeps packets small enough for hardware routing offload through PPPoE, and turns on a Wi-Fi 7 MLO network.
 
 | What | NPU on | NPU off |
 |---|---|---|
