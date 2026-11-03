@@ -200,12 +200,13 @@ read -r ans || ans=
 [ "$ans" = YES ] || fail "cancelled, nothing was written"
 
 step "5/6 Wi-Fi calibration"
-$SSH "$R" sh /tmp/be5000-install.sh calibration || fail "calibration step failed. If the output above contains 'writing calibration', do NOT reboot or power off the router: run sh install.sh again right away, it writes the block again from the copy saved before the first attempt. Otherwise nothing was written and the router works as before"
+$SSH "$R" sh /tmp/be5000-install.sh calibration || fail "calibration step failed. If the output above contains 'writing calibration', do NOT reboot or power off the router: run sh install.sh again right away, it writes the block again from the copy saved before the first attempt; keep the backup of this run ($OUT), the next run backs up the half-written flash. Otherwise nothing was written and the router works as before"
 
 step "6/6 Bootloader (do not power off!)"
 $SSH "$R" "BE5000_NAND_OK=${BE5000_NAND_OK:-} sh /tmp/be5000-install.sh bootloader /tmp/$(basename "$BL")" \
-	|| fail "bootloader step failed. If the output above contains 'writing bootloader', do NOT reboot or power off the router: run sh install.sh again right away, it writes the bootloader again; if that fails too, open an issue with the output. Otherwise nothing was written"
-$SSH "$R" 'cat /tmp/be5000-mtd*-old-bootloader.bin' > "$OUT/old-bootloader.bin" 2>/dev/null || true
+	|| fail "bootloader step failed. If the output above contains 'writing bootloader', do NOT reboot or power off the router: run sh install.sh again right away, it writes the bootloader again; keep the backup of this run ($OUT), the next run backs up the half-written flash. If that fails too, open an issue with the output. Otherwise nothing was written"
+# Only when this run wrote the bootloader: "already written" leaves no copy on the router
+$SSH "$R" 'cat /tmp/be5000-mtd*-old-bootloader.bin' > "$OUT/old-bootloader.bin" 2>/dev/null && [ -s "$OUT/old-bootloader.bin" ] || rm -f "$OUT/old-bootloader.bin"
 if [ -n "$KEY" ]; then
 	$SSH "$R" "sed -i '/$TAG/d' /etc/dropbear/authorized_keys ~/.ssh/authorized_keys 2>/dev/null; reboot" || true
 	rm -f "$KEY" "$KEY.pub"

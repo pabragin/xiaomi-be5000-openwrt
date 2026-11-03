@@ -57,6 +57,10 @@ trap '$SSH "$HOST" "dmesg; rm -f $HELPER" > "$OUT/dmesg.txt.new" 2>/dev/null && 
 cat "$OUT/proc_mtd.txt"
 rm -f "$OUT/bad-blocks.txt"
 MSG=$OUT/.router-messages   # stderr of the last partition read
+# Sub-partitions (kernel/rootfs inside "firmware", "stock-env" inside "art") report
+# their sysfs offset relative to the parent: they start before the end of what was
+# seen so far. Their bad blocks get no flash offset, the parent lists them with one.
+maxend=0
 
 for dev in $(sed 1d "$OUT/proc_mtd.txt" | cut -d: -f1); do
 	line=$(grep "^$dev:" "$OUT/proc_mtd.txt")   # mtd3: 04000000 00020000 "firmware"
@@ -64,6 +68,8 @@ for dev in $(sed 1d "$OUT/proc_mtd.txt" | cut -d: -f1); do
 	size=$((0x$(echo "$line" | awk '{print $2}')))
 	bs=$((0x$(echo "$line" | awk '{print $3}')))
 	file=$OUT/$dev-$name.bin
+	off=$(awk -v d="$dev" '$1 == d {print $2}' "$OUT/sysfs_mtd.txt")
+	case $off in [0-9]*) if [ "$off" -lt "$maxend" ]; then off=nested; else maxend=$((off + size)); fi ;; esac
 	echo ">>> $dev ($name)"
 	$SSH "$HOST" "sh $HELPER /dev/$dev $bs $size" > "$file" 2> "$MSG" || true
 	grep -v -e '^sha256 ' -e '^bad ' "$MSG" || true   # what the router printed, e.g. a read error
@@ -72,10 +78,10 @@ for dev in $(sed 1d "$OUT/proc_mtd.txt" | cut -d: -f1); do
 		echo "$dev: the router could not read it whole (see above), reading it block by block"
 		$SSH "$HOST" "sh $HELPER /dev/$dev $bs $size blocks" > "$file" 2> "$MSG" || true
 		grep -v -e '^sha256 ' -e '^bad ' "$MSG" || true
-		off=$(awk -v d="$dev" '$1 == d {print $2}' "$OUT/sysfs_mtd.txt")
 		grep '^bad ' "$MSG" | cut -d' ' -f2 | while read -r b; do
 			case $off in
 				[0-9]*) printf '%s (%s): block %s, offset 0x%X in the partition, 0x%X in the flash\n' "$dev" "$name" "$b" $((b * bs)) $((off + b * bs)) ;;
+				nested) printf '%s (%s): block %s, offset 0x%X in the partition (inside an earlier partition)\n' "$dev" "$name" "$b" $((b * bs)) ;;
 				*) printf '%s (%s): block %s, offset 0x%X in the partition\n' "$dev" "$name" "$b" $((b * bs)) ;;
 			esac
 		done | tee -a "$OUT/bad-blocks.txt"

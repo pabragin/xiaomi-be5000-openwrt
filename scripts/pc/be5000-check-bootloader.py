@@ -46,6 +46,19 @@ def lzma_parts(blob):
     return parts
 
 
+def chip_supported(chip, chips):
+    """The same match as cmd_nand in be5000-install.sh: the table lists name
+    prefixes (W25N01G, F50L1G), so a full marking such as W25N01KVZEIR matches."""
+    key = chip.upper()
+    if key == "W25N01GV":
+        key = "W25N01G"
+    key = re.sub(r"^MX35LF", "MXIC35LF", key)
+    # 1.8 V Winbond parts (W25N01GW, W25N01KW, ...) share the prefix of the 3.3 V ones
+    if re.match(r"W25[NM]0[0-9][GK]W", key):
+        return False
+    return any(key.startswith(c) for c in chips)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("image")
@@ -63,7 +76,7 @@ def main():
                 chips |= {m.decode() for m in re.findall(rb"_SPI_NAND_DEVICE_ID_([A-Z0-9_]+)", p)}
             print(f"  BL2 SPI-NAND table: {len(chips)} chips")
             print("  " + " ".join(sorted(chips)))
-            has = a.chip.upper() in chips
+            has = chip_supported(a.chip, chips)
             ok &= has
             print(f"  {a.chip}: {'SUPPORTED' if has else 'MISSING - this BL2 will PANIC on boot with this chip'}")
         if name.startswith("BL33"):
