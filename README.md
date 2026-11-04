@@ -26,7 +26,7 @@ Everything below is tested on a BE5000 running this firmware.
 
 | What | How it works |
 |---|---|
-| **System** | OpenWrt SNAPSHOT `r36539+1232`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
+| **System** | OpenWrt SNAPSHOT `r36539+1235`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
 | **5 GHz Wi-Fi** | 3x3, 160 MHz, Wi-Fi 6/7. A 2x2 MacBook (2 streams, 2402 Mbit/s link): **1897 Mbit/s** download, **1778 Mbit/s** upload ([test](docs/en/technical.md#speed)) |
 | **Wi-Fi 7** | WPA3 with GCMP-256 and MLO (2.4 + 5 GHz) also go through the NPU: a Wi-Fi 7 client on WPA3 uploads 1560–1760 Mbit/s. An MLO network is turned on in LuCI: **Network → Advanced settings** |
 | **2.4 GHz Wi-Fi** | 2x2, works, 20/40 MHz |
@@ -118,6 +118,8 @@ Copy every obfuscation line of your `.conf` (Jc…H4, and S3, S4, I1–I5, Heade
 
 The switch is in LuCI: **Network → Advanced settings**. The NPU is on by default. A change restarts Wi-Fi for a few seconds. The same page sets the TCP MSS for PPPoE (1452 by default), which keeps packets small enough for hardware routing offload through PPPoE, and turns on a Wi-Fi 7 MLO network.
 
+**Routing offload** (**Network → Firewall → Routing/NAT Offloading**, software and hardware) is on by default on a router: Wi-Fi ↔ WAN goes through the PPE at ~1.1 Gbit/s upload and ~1.7 Gbit/s download with the CPU almost idle, IPv4 and IPv6, PPPoE included. Without it every frame goes through the CPU: Wi-Fi upload stays at ~300–400 Mbit/s and congests the Ethernet frame engine (see [Known issues](#known-issues)). An upgrade turns it on once if the option was never set; an access point (no `wan`) is left as it is.
+
 | What | NPU on | NPU off |
 |---|---|---|
 | Wi-Fi ↔ wired network | up to ~1.9 Gbit/s | ~1.1 Gbit/s |
@@ -138,6 +140,7 @@ All: OpenSpeedTest from a 2x2 160 MHz MacBook to a wired PC. On the right the Ma
 
 ### Known issues
 
+- **Heavy forwarding through the CPU** (routing offload off, a VPN on the router) congests the Ethernet frame engine: the input queue of the packet processor jams and the wired port stops passing traffic. The driver notices it within ~3 s and resets the frame engine in ~0.1 s, as the stock firmware does; TCP connections survive. If the receive DMA itself is stuck, no reset is safe and the driver reboots the router (`echo 0 > /sys/module/airoha_eth/parameters/reboot_on_wedge` turns that off). With routing offload on this path carries little traffic.
 - **The reboot after `sysupgrade`** sometimes hangs: about 1 in 3 with this build. The LED stays off and the router does not reboot by itself. Unplug the power and plug it back in: the image and the settings are already written (checked in the netconsole log). Plain reboots, warm or cold, do not hang. The hang happens after the software reset of the CPU, before the watchdog runs. The cause is still being looked for.
 
 ## 2. Requirements
