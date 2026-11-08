@@ -26,7 +26,7 @@ Everything below is tested on a BE5000 running this firmware.
 
 | What | How it works |
 |---|---|
-| **System** | OpenWrt SNAPSHOT `r36539+1241`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
+| **System** | OpenWrt SNAPSHOT `r36539+1247`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
 | **5 GHz Wi-Fi** | 3x3, 160 MHz, Wi-Fi 6/7. A 2x2 MacBook (2 streams, 2402 Mbit/s link): **1897 Mbit/s** download, **1778 Mbit/s** upload ([test](docs/en/technical.md#speed)) |
 | **Wi-Fi 7** | WPA3 with GCMP-256 and MLO (2.4 + 5 GHz) also go through the NPU: a Wi-Fi 7 client on WPA3 uploads 1560–1760 Mbit/s. An MLO network is turned on in LuCI: **Network → Advanced settings** |
 | **2.4 GHz Wi-Fi** | 2x2, works, 20/40 MHz |
@@ -35,7 +35,7 @@ Everything below is tested on a BE5000 running this firmware.
 | **Roaming** | 802.11r: phones and laptops move seamlessly between the BE5000 and another OpenWrt AP with the same network |
 | **Ports** | 2.5 Gbit/s WAN (DHCP client) and three 1 Gbit/s LAN ports. The WAN port also works at 1 Gbit/s (a 1 Gbit/s ONT or switch): stable link, ~920 Mbit/s upload with offload ([details](docs/en/technical.md#what-this-build-changes)) |
 | **Settings** | survive reboots and power cuts, and are kept across firmware upgrades; about 79 MiB free in `/overlay` for settings and packages |
-| **Temperature** | SoC sensors in `/sys/class/thermal` (63–69 °C); the CPU is throttled at 105 °C |
+| **Temperature** | SoC sensors in `/sys/class/thermal` (63–69 °C); the CPU is throttled at 105 °C. A 24-hour chart of the CPU, SoC and Wi-Fi temperatures: **Status → Realtime Graphs → Temperature** |
 | **Reboot** | warm and cold reboots without hangs; if the system hangs, the watchdog reboots it after ~30 s. Except the reboot right after `sysupgrade` ([known issues](#known-issues)) |
 | **Management** | LuCI web UI and SSH at `192.168.1.1`, upgrades with `sysupgrade`. LuCI in English, Russian, Ukrainian, Chinese, German, Spanish, French and Brazilian Portuguese: picked by the browser or in **System → System → Language and Style**. Each radio's dialog offers only its own band (iwinfo fix for the MT7992, whose two radios are one device) |
 | **Packages** | `apk add` from the OpenWrt feeds; kernel modules (`kmod-*`, all 1100 of them) and the packages of the VPN image from [this build's own feed](https://pabragin.github.io/xiaomi-be5000-openwrt/) |
@@ -50,7 +50,7 @@ Every release has two images. Both install the same way, and `sysupgrade` moves 
 | Release file | What is inside |
 |---|---|
 | `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` | plain: Wi-Fi, NPU offload, LuCI |
-| `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` | VPN: the same plus AmneziaWG 3.1, Xray from the Amnezia fork with luci-app-xray, zapret, https-dns-proxy (DNS over HTTPS) and pbr (policy routing), all with LuCI |
+| `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` | VPN: the same plus AmneziaWG 3.1, Xray from the Amnezia fork with luci-app-xray, zapret, https-dns-proxy (DNS over HTTPS) and pbr (policy routing), all with LuCI, and the [Argon](https://github.com/jerrykuku/luci-theme-argon) LuCI theme (Bootstrap stays in **System → System → Language and Style**) |
 
 All the VPN services of the VPN image are in the LuCI **Services** menu: AmneziaWG, zapret, DNS over HTTPS, policy routing and Xray.
 
@@ -135,6 +135,7 @@ All: OpenSpeedTest from a 2x2 160 MHz MacBook to a wired PC. On the right the Ma
 
 - **When to turn the NPU off:** only for the most VPN speed on the router itself: AmneziaWG gets 251/236 Mbit/s without it against 212/178 with it, Xray 137/117 against 121/119, while Wi-Fi ↔ wired drops from ~1.9 to ~1.1 Gbit/s. Otherwise keep it on.
 - **Traffic of the router itself with the NPU:** frames addressed to the router are copied by the NPU into Linux memory, reading them through the cached memory alias. That gives ~450 Mbit/s, so a VPN on the router is limited by the CPU, not by the NPU.
+- **CPU cores:** Wi-Fi is processed on one core and Ethernet on the other (`/usr/libexec/platform/packet-steering.sh`), so both halves of a VPN or forwarded flow run in parallel. **Packet Steering** set to disabled in **Network → Interfaces → Global network options** turns this off.
 - **The limit without the NPU** is the CPU: two Cortex-A53 cores in AArch32 mode without NEON, so encryption runs as scalar code only. AmneziaWG keeps the CPU fully busy.
 - **Xray is slower than AmneziaWG:** it encrypts in user space with Go code, AmneziaWG does it in the kernel. The CPU has no AES instructions, and AES-GCM in Go would give about 35–45 Mbit/s. So the Xray in the image offers ChaCha20-Poly1305 first on CPUs without AES instructions, as Chrome does on such CPUs. It works the same way when the BE5000 is the client of a remote Reality server: ~125–135 Mbit/s download.
 
