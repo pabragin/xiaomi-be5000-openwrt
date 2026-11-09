@@ -26,12 +26,12 @@ Everything below is tested on a BE5000 running this firmware.
 
 | What | How it works |
 |---|---|
-| **System** | OpenWrt SNAPSHOT `r36539+1247`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
+| **System** | OpenWrt SNAPSHOT `r36539+1248`, **Linux 6.18.55** kernel ([build details](firmware/openwrt/README.md)) |
 | **5 GHz Wi-Fi** | 3x3, 160 MHz, Wi-Fi 6/7. A 2x2 MacBook (2 streams, 2402 Mbit/s link): **1897 Mbit/s** download, **1778 Mbit/s** upload ([test](docs/en/technical.md#speed)) |
 | **Wi-Fi 7** | WPA3 with GCMP-256 and MLO (2.4 + 5 GHz) also go through the NPU: a Wi-Fi 7 client on WPA3 uploads 1560–1760 Mbit/s. An MLO network is turned on in LuCI: **Network → Advanced settings** |
 | **2.4 GHz Wi-Fi** | 2x2, works, 20/40 MHz |
 | **Hardware offload** | Wi-Fi ↔ wired traffic goes through the PPE and the NPU; the CPU is ~10% busy at full speed. The NPU can be turned off in LuCI when a fast VPN matters more ([details](#npu-offload-and-vpn)) |
-| **VPN** (VPN image) | AmneziaWG 3.1, Xray from the Amnezia fork (VLESS, Reality, xhttp) with luci-app-xray, zapret, https-dns-proxy, pbr; all with LuCI ([details](#two-images)) |
+| **VPN** (VPN image) | AmneziaWG 3.1, Xray from the Amnezia fork (VLESS, Reality, xhttp) with luci-app-xray, zapret, https-dns-proxy, pbr with dnsmasq-full (domain rules through nftset); all with LuCI ([details](#two-images)) |
 | **Roaming** | 802.11r: phones and laptops move seamlessly between the BE5000 and another OpenWrt AP with the same network |
 | **Ports** | 2.5 Gbit/s WAN (DHCP client) and three 1 Gbit/s LAN ports. The WAN port also works at 1 Gbit/s (a 1 Gbit/s ONT or switch): stable link, ~920 Mbit/s upload with offload ([details](docs/en/technical.md#what-this-build-changes)) |
 | **Settings** | survive reboots and power cuts, and are kept across firmware upgrades; about 79 MiB free in `/overlay` for settings and packages |
@@ -50,7 +50,7 @@ Every release has two images. Both install the same way, and `sysupgrade` moves 
 | Release file | What is inside |
 |---|---|
 | `openwrt-airoha-an7563-xiaomi_be5000-squashfs-sysupgrade.bin` | plain: Wi-Fi, NPU offload, LuCI |
-| `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` | VPN: the same plus AmneziaWG 3.1, Xray from the Amnezia fork with luci-app-xray, zapret, https-dns-proxy (DNS over HTTPS) and pbr (policy routing), all with LuCI, and the [Argon](https://github.com/jerrykuku/luci-theme-argon) LuCI theme (Bootstrap stays in **System → System → Language and Style**) |
+| `openwrt-airoha-an7563-xiaomi_be5000-full-squashfs-sysupgrade.bin` | VPN: the same plus AmneziaWG 3.1, Xray from the Amnezia fork with luci-app-xray, zapret, https-dns-proxy (DNS over HTTPS) and pbr (policy routing), all with LuCI, dnsmasq-full instead of dnsmasq (nftset for pbr domain rules), and the [Argon](https://github.com/jerrykuku/luci-theme-argon) LuCI theme (Bootstrap stays in **System → System → Language and Style**) |
 
 All the VPN services of the VPN image are in the LuCI **Services** menu: AmneziaWG, zapret, DNS over HTTPS, policy routing and Xray.
 
