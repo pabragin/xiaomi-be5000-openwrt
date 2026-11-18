@@ -1,0 +1,164 @@
+diff --git a/build/arches.sh b/build/arches.sh
+index 075f350..0d4484d 100644
+--- a/build/arches.sh
++++ b/build/arches.sh
+@@ -12,6 +12,7 @@ aarch64_cortex-a72:aarch64-linux-musl:cortex_a72
+ aarch64_cortex-a73:aarch64-linux-musl:cortex_a73
+ aarch64_generic:aarch64-linux-musl:baseline
+ arm_cortex-a7_neon-vfpv4:arm-linux-musleabihf:cortex_a7
++arm_cortex-a7:arm-linux-musleabi:cortex_a7+soft_float-neon-vfp4-vfp3-vfp2-vfp2sp-vfp3d16-vfp3d16sp-vfp3sp-vfp4d16-vfp4d16sp-vfp4sp-fp16-fpregs-d32-fp64
+ arm_cortex-a9:arm-linux-musleabi:cortex_a9
+ arm_cortex-a9_neon:arm-linux-musleabihf:cortex_a9+neon
+ arm_cortex-a9_vfpv3-d16:arm-linux-musleabihf:cortex_a9+vfp3d16
+diff --git a/build/pack-s2p.sh b/build/pack-s2p.sh
+index cc128bc..688dc7a 100644
+--- a/build/pack-s2p.sh
++++ b/build/pack-s2p.sh
+@@ -97,7 +97,7 @@ if [ -n "$SEED" ]; then
+     cp "$DIST/net1-$N1VER-$ARCH.s2p" "$DIST/awg-$VERSION-all.s2p" "$_in/"
+     for _p in $(profile_var PLUGINS_NET1) $(profile_var PLUGINS_STATIC); do cp "$DIST/$_p-$VERSION-$ARCH.s2p" "$_in/"; done
+     "$S2P_BIN" index "$_in" -o "$SEED" --repo splify2 --name splify2 --meta "$_meta" \
+-        --pub "${KEY%.sec}.pub" --key "$IKEY" --mirror https://splify2.github.io/plugins/ --expires "${S2P_SEED_EXPIRES:-3650d}" >/dev/null
++        --pub "${KEY%.sec}.pub" --key "$IKEY" --mirror https://pabragin.github.io/xiaomi-be5000-openwrt/steer-plugins/ --expires "${S2P_SEED_EXPIRES:-3650d}" >/dev/null
+ fi
+ [ -z "$TESTKEY" ] || echo "pack-s2p: $ARCH — подписано ТЕСТОВЫМ ключом build/s2p-testkey/test.sec" >&2
+ echo "pack-s2p: $ARCH — $(ls "$DIST"/*-"$ARCH".s2p | wc -l) архивов${SEED:+, семя $SEED}"
+diff --git a/files/etc/steer/plugins/repos.d/splify2.json b/files/etc/steer/plugins/repos.d/splify2.json
+index e6dae42..973159f 100644
+--- a/files/etc/steer/plugins/repos.d/splify2.json
++++ b/files/etc/steer/plugins/repos.d/splify2.json
+@@ -1 +1 @@
+-{"id":"splify2","url":"https://splify2.github.io/plugins/","mirrors":["https://cdn.jsdelivr.net/gh/splify2/plugins@gh-pages/"],"official":true,"priority":0,"keys":[],"last_generated":null,"auto_update":true}
++{"id":"splify2","url":"https://pabragin.github.io/xiaomi-be5000-openwrt/steer-plugins/","mirrors":[],"official":true,"priority":0,"keys":[],"last_generated":null,"auto_update":true}
+diff --git a/plugins/hysteria2/plugin.json b/plugins/hysteria2/plugin.json
+index f5d4173..cd74648 100644
+--- a/plugins/hysteria2/plugin.json
++++ b/plugins/hysteria2/plugin.json
+@@ -15,6 +15,7 @@
+     "aarch64_cortex-a72",
+     "aarch64_cortex-a73",
+     "aarch64_generic",
++    "arm_cortex-a7",
+     "arm_cortex-a7_neon-vfpv4",
+     "arm_cortex-a9",
+     "arm_cortex-a9_neon",
+diff --git a/plugins/net1/plugin.json b/plugins/net1/plugin.json
+index 9138346..b3c956a 100644
+--- a/plugins/net1/plugin.json
++++ b/plugins/net1/plugin.json
+@@ -16,6 +16,7 @@
+     "aarch64_cortex-a72",
+     "aarch64_cortex-a73",
+     "aarch64_generic",
++    "arm_cortex-a7",
+     "arm_cortex-a7_neon-vfpv4",
+     "arm_cortex-a9",
+     "arm_cortex-a9_neon",
+diff --git a/plugins/obfs/plugin.json b/plugins/obfs/plugin.json
+index 9850afd..015dd45 100644
+--- a/plugins/obfs/plugin.json
++++ b/plugins/obfs/plugin.json
+@@ -15,6 +15,7 @@
+     "aarch64_cortex-a72",
+     "aarch64_cortex-a73",
+     "aarch64_generic",
++    "arm_cortex-a7",
+     "arm_cortex-a7_neon-vfpv4",
+     "arm_cortex-a9",
+     "arm_cortex-a9_neon",
+diff --git a/plugins/proxy/plugin.json b/plugins/proxy/plugin.json
+index b9eecf5..3526a43 100644
+--- a/plugins/proxy/plugin.json
++++ b/plugins/proxy/plugin.json
+@@ -15,6 +15,7 @@
+     "aarch64_cortex-a72",
+     "aarch64_cortex-a73",
+     "aarch64_generic",
++    "arm_cortex-a7",
+     "arm_cortex-a7_neon-vfpv4",
+     "arm_cortex-a9",
+     "arm_cortex-a9_neon",
+diff --git a/plugins/tgws/plugin.json b/plugins/tgws/plugin.json
+index b831eb4..acdf4c6 100644
+--- a/plugins/tgws/plugin.json
++++ b/plugins/tgws/plugin.json
+@@ -17,6 +17,7 @@
+     "aarch64_cortex-a72",
+     "aarch64_cortex-a73",
+     "aarch64_generic",
++    "arm_cortex-a7",
+     "arm_cortex-a7_neon-vfpv4",
+     "arm_cortex-a9",
+     "arm_cortex-a9_neon",
+diff --git a/plugins/vless/plugin.json b/plugins/vless/plugin.json
+index 1fe68cd..b075be3 100644
+--- a/plugins/vless/plugin.json
++++ b/plugins/vless/plugin.json
+@@ -15,6 +15,7 @@
+     "aarch64_cortex-a72",
+     "aarch64_cortex-a73",
+     "aarch64_generic",
++    "arm_cortex-a7",
+     "arm_cortex-a7_neon-vfpv4",
+     "arm_cortex-a9",
+     "arm_cortex-a9_neon",
+diff --git a/plugins/warpbox/plugin.json b/plugins/warpbox/plugin.json
+index ef4373e..63556e8 100644
+--- a/plugins/warpbox/plugin.json
++++ b/plugins/warpbox/plugin.json
+@@ -15,6 +15,7 @@
+     "aarch64_cortex-a72",
+     "aarch64_cortex-a73",
+     "aarch64_generic",
++    "arm_cortex-a7",
+     "arm_cortex-a7_neon-vfpv4",
+     "arm_cortex-a9",
+     "arm_cortex-a9_neon",
+diff --git a/plugins/xsteer/plugin.json b/plugins/xsteer/plugin.json
+index eefc6ac..2300159 100644
+--- a/plugins/xsteer/plugin.json
++++ b/plugins/xsteer/plugin.json
+@@ -15,6 +15,7 @@
+     "aarch64_cortex-a72",
+     "aarch64_cortex-a73",
+     "aarch64_generic",
++    "arm_cortex-a7",
+     "arm_cortex-a7_neon-vfpv4",
+     "arm_cortex-a9",
+     "arm_cortex-a9_neon",
+diff --git a/src/plugkit/pkembed.c b/src/plugkit/pkembed.c
+index 7a6539e..0ada238 100644
+--- a/src/plugkit/pkembed.c
++++ b/src/plugkit/pkembed.c
+@@ -26,6 +26,7 @@ static const struct plugin_embed_file f_vless[] = {
+     "    \"aarch64_cortex-a72\",\n"
+     "    \"aarch64_cortex-a73\",\n"
+     "    \"aarch64_generic\",\n"
++    "    \"arm_cortex-a7\",\n"
+     "    \"arm_cortex-a7_neon-vfpv4\",\n"
+     "    \"arm_cortex-a9\",\n"
+     "    \"arm_cortex-a9_neon\",\n"
+@@ -337,6 +338,7 @@ static const struct plugin_embed_file f_xsteer[] = {
+     "    \"aarch64_cortex-a72\",\n"
+     "    \"aarch64_cortex-a73\",\n"
+     "    \"aarch64_generic\",\n"
++    "    \"arm_cortex-a7\",\n"
+     "    \"arm_cortex-a7_neon-vfpv4\",\n"
+     "    \"arm_cortex-a9\",\n"
+     "    \"arm_cortex-a9_neon\",\n"
+@@ -491,6 +493,7 @@ static const struct plugin_embed_file f_obfs[] = {
+     "    \"aarch64_cortex-a72\",\n"
+     "    \"aarch64_cortex-a73\",\n"
+     "    \"aarch64_generic\",\n"
++    "    \"arm_cortex-a7\",\n"
+     "    \"arm_cortex-a7_neon-vfpv4\",\n"
+     "    \"arm_cortex-a9\",\n"
+     "    \"arm_cortex-a9_neon\",\n"
+@@ -576,6 +579,7 @@ static const struct plugin_embed_file f_tgws[] = {
+     "    \"aarch64_cortex-a72\",\n"
+     "    \"aarch64_cortex-a73\",\n"
+     "    \"aarch64_generic\",\n"
++    "    \"arm_cortex-a7\",\n"
+     "    \"arm_cortex-a7_neon-vfpv4\",\n"
+     "    \"arm_cortex-a9\",\n"
+     "    \"arm_cortex-a9_neon\",\n"

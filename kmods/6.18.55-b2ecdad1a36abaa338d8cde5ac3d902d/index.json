@@ -1184,6 +1184,7 @@
     "nikki": "2026.10.10-r1",
     "podkop": "0.7.24-r1",
     "procd-ujail": "2026.10.18~5aef7c33-r1",
+    "steer-core": "2.1.4-r1",
     "tcping": "0.3-r1",
     "ubi-utils": "2.3.1-r1",
     "v2raya": "2.2.7.5-r2",

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>steer plugins for Xiaomi BE5000</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;max-width:720px;margin:0 auto;padding:24px 16px;color:#1b1f23;background:#fff}
+code,pre{font-family:ui-monospace,Menlo,monospace;font-size:14px}
+pre{background:#f4f6f8;padding:12px;overflow-x:auto;border-radius:6px}
+@media (prefers-color-scheme:dark){body{color:#e6e8ea;background:#14171a}pre{background:#1f2428}a{color:#79b8ff}}</style></head>
+<body><p><a href="../">&larr; back</a></p>
+<h1>steer plugins for Xiaomi BE5000</h1>
+<p>Protocol plugins (<code>.s2p</code>) of <a href="https://github.com/splify2/steer">splify2/steer</a> 2.1.4 built for
+<code>arm_cortex-a7</code> with software floating point: the AN7563 CPU has no FPU and no NEON, and the upstream release has no build for it.
+The <code>steer-core</code> package from the BE5000 feed reads this repository instead of the upstream one.</p>
+<pre>apk update
+apk add steer-core</pre>
+<p>This is an unofficial build. The index and the archives are signed with the keys of this feed, not with the splify2 keys.
+Plugins: net1, vless, hysteria2, proxy, xsteer, obfs, warpbox, awg. Index: <a href="index.json">index.json</a>.</p>
+<h2>Source</h2>
+<p>License GPL-3.0. Built from tag <a href="https://github.com/splify2/steer/tree/v2.1.4">v2.1.4</a> (commit 70d11eb) with
+<a href="source/steer-2.1.4-be5000.patch">steer-2.1.4-be5000.patch</a>; the <code>s2p</code> tool from
+<a href="https://github.com/splify2/plugin-sdk">splify2/plugin-sdk</a> (commit 0e2ca4e) with
+<a href="source/plugin-sdk-0e2ca4e-be5000.patch">plugin-sdk-0e2ca4e-be5000.patch</a>.</p>
+</body>
+</html>

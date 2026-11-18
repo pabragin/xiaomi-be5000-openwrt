@@ -1,0 +1,12 @@
+diff --git a/cmd/s2p/arches.go b/cmd/s2p/arches.go
+index cbabcab..8b6867c 100644
+--- a/cmd/s2p/arches.go
++++ b/cmd/s2p/arches.go
+@@ -18,6 +18,7 @@ var arches = []archInfo{
+ 	{"aarch64_cortex-a72", "aarch64-linux-musl", "cortex_a72", "/lib/ld-musl-aarch64.so.1", elf.EM_AARCH64, elf.ELFCLASS64, elf.ELFDATA2LSB},
+ 	{"aarch64_cortex-a73", "aarch64-linux-musl", "cortex_a73", "/lib/ld-musl-aarch64.so.1", elf.EM_AARCH64, elf.ELFCLASS64, elf.ELFDATA2LSB},
+ 	{"aarch64_generic", "aarch64-linux-musl", "baseline", "/lib/ld-musl-aarch64.so.1", elf.EM_AARCH64, elf.ELFCLASS64, elf.ELFDATA2LSB},
++	{"arm_cortex-a7", "arm-linux-musleabi", "cortex_a7+soft_float-neon-vfp4-vfp3-vfp2-vfp2sp-vfp3d16-vfp3d16sp-vfp3sp-vfp4d16-vfp4d16sp-vfp4sp-fp16-fpregs-d32-fp64", "/lib/ld-musl-arm.so.1", elf.EM_ARM, elf.ELFCLASS32, elf.ELFDATA2LSB},
+ 	{"arm_cortex-a7_neon-vfpv4", "arm-linux-musleabihf", "cortex_a7", "/lib/ld-musl-armhf.so.1", elf.EM_ARM, elf.ELFCLASS32, elf.ELFDATA2LSB},
+ 	{"arm_cortex-a9", "arm-linux-musleabi", "cortex_a9", "/lib/ld-musl-arm.so.1", elf.EM_ARM, elf.ELFCLASS32, elf.ELFDATA2LSB},
+ 	{"arm_cortex-a9_neon", "arm-linux-musleabihf", "cortex_a9+neon", "/lib/ld-musl-armhf.so.1", elf.EM_ARM, elf.ELFCLASS32, elf.ELFDATA2LSB},
